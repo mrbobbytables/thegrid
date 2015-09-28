@@ -71,7 +71,7 @@ get_host_ip() {
     local netdev=""
     local local_ip=""
     local bind_ip=""
-    netdev="$(ip link show | grep -m 1 'state UP' | awk '{print substr($2, 0, length($2)-1)}')"
+    netdev="$(ip link show | grep -m 1 'state UP' | awk '{print $2}' | grep -Po '.*(?=:)')"
     local_ip="$(ip addr show "$netdev" | grep -m 1 -P -o '(?<=inet )[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
 
     read -p "What is the Forward facing IP you wish to bind services to? [default: $local_ip]" bind_ip
