@@ -1,0 +1,28 @@
+{
+    "id": "/registry",
+    "instances": 1,
+    "cpus": 0.25,
+    "mem": 128,
+    "ports": [
+      5000
+    ],
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "distribution/registry",
+            "forcePullImage": true,
+            "network": "BRIDGE",
+            "portMappings": [
+              { "containerPort": 5000, "hostPort": 31111, "protocol": "tcp" }
+            ]
+        },
+        "volumes": [
+          { 
+            "containerPath": "/var/lib/registry",
+            "hostPath": "/tmp/registry",
+            "mode": "RW"
+           }
+        ]
+    }
+}
+

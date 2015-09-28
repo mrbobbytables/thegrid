@@ -1,0 +1,31 @@
+{
+    "id": "/mesos-dns",
+    "instances": 1,
+    "cpus": 0.25,
+    "mem": 64,
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "mrbobbytables/mesos-dns",
+            "network": "HOST",
+            "parameters": [
+              { "key": "cap-add", "value": "NET_ADMIN" }
+            ]
+        }
+    },
+    "env": {
+        "ENVIRONMENT": "local",
+        "MESOSDNS_ZK": "zk://192.168.111.10:2181/mesos",
+        "MESOSDNS_MASTERS_1": "192.168.111.11:5050",
+        "MESOSDNS_LISTENER": "192.168.111.15",
+        "MESOSDNS_RESOLVERS_1": "8.8.8.8",
+        "MESOSDNS_RESOLVERS_2": "8.8.4.4",
+        "MESOSDNS_DOMAIN": "mesos",
+        "MESOSDNS_REFRESHSECONDS": "60",
+        "MESOSDNS_TTL": "60",
+        "MESOSDNS_TIMEOUT": "5",
+        "MESOSDNS_PORT": "53",
+        "MESOSDNS_HTTPORT": "8123"
+    }
+}
+

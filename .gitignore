@@ -1,0 +1,6 @@
+*.swp
+*.ovpn
+/docker-compose.yml
+containers/
+local/
+

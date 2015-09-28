@@ -1,0 +1,11 @@
+{
+  "name": "test",
+  "schedule": "R/2015-08-29T11:00:00Z/PT5M",
+  "container": {
+    "type": "DOCKER",
+    "image": "ubuntu"
+  },
+  "cpus": 0.2,
+  "mem": 32.0,
+  "command": "echo \"lookma, i'm scheduled!\""
+}

@@ -1,0 +1,84 @@
+zookeeper:
+  container_name: zookeeper
+  hostname: zookeeper
+  image: mrbobbytables/zookeeper
+  expose: 
+    - "2181"
+    - "2888"
+    - "3888"
+  environment:
+    - ZOOKEEPER_LOG_STDOUT_THRESHOLD=WARN
+
+mesosmaster:
+  container_name: mesosmaster
+  hostname: mesosmaster
+  image: mrbobbytables/mesos-master
+  links:
+    - zookeeper:zk
+  ports:
+      - "5050:5050"
+  environment:
+    - MESOS_ZK=zk://zk:2181/mesos
+    - MESOS_QUORUM=1
+    - MESOS_REGISTRY=in_memory
+    - MESOS_WORK_DIR=/var/lib/mesos
+    - MESOS_LOG_DIR=/var/log/mesos
+    - MESOS_LOGGING_LEVEL=WARNING
+
+mesosslave:
+  container_name: mesosslave
+  image: mrbobbytables/mesos-slave
+  cap_add:
+    - SYS_ADMIN
+  expose:
+    - "5051"
+  links:
+    - zookeeper:zk
+    - mesosmaster:master
+  environment:
+    - MESOS_MASTER=zk://zk:2181/mesos
+    - MESOS_CONTAINERIZERS=docker,mesos
+    - MESOS_EXECUTOR_REGISTRATION_TIMEOUT=5mins
+    - MESOS_WORKDIR=/var/lib/mesos
+    - MESOS_LOG_DIR=/var/log/mesos
+    - MESOS_DOCKER_SANDBOX_DIRECTORY=/mnt/mesos/sandbox
+    - MESOS_LOGGING_LEVEL=WARNING
+  volumes:
+    - /sys:/sys:ro
+    - /usr/bin/docker:/usr/bin/docker:ro
+    - /var/run/docker.sock:/var/run/docker.sock:rw
+
+marathon:
+  container_name: marathon
+  hostname: marathon
+  image: mrbobbytables/marathon
+  links:
+    - zookeeper:zk
+  expose:
+    - "8080"
+    - "9000"
+  ports:
+      - "8080:8080"
+  environment:
+    - MARATHON_MASTER=zk://zk:2181/mesos
+    - MARATHON_ZK=zk://zk:2181/marathon
+    - MARATHON_EVENT_SUBSCRIBER=http_callback
+    - MARATHON_LOG_STDOUT_THRESHOLD=WARN
+
+chronos:
+  container_name: chronos
+  hostname: chronos
+  image: mrbobbytables/chronos
+  expose:
+    - "4400"
+    - "9000"
+  ports:
+    - "4400:4400"
+  links:
+    - zookeeper:zk
+  environment:
+    - CHRONOS_MASTER=zk://zk:2181/mesos
+    - CHRONOS_ZK_HOSTS=zk://zk:2181
+    - CHRONOS_HTTP_PORT=4400
+    - CHRONOS_LOG_STDOUT_THRESHOLD=WARN
+

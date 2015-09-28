@@ -1,0 +1,23 @@
+{
+    "id": "/ovpn",
+    "instances": 1,
+    "cpus": 0.5,
+    "mem": 64,
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "local-openvpn",
+            "network": "HOST",
+            "parameters": [
+                { "key": "cap-add", "value": "NET_ADMIN" }
+            ]
+        }
+    },
+    "env": {
+        "ENVIRONMENT": "local",
+        "OVPN_LOCAL": "0.0.0.0",
+        "OVPN_PUSH_1": "route 192.168.111.0 255.255.255.0",
+        "OVPN_PUSH_2": "dhcp-option DNS 192.168.111.15",
+        "OVPN_NET_1": "mesos0:ovpn:192.168.111.0/24"
+    }
+}

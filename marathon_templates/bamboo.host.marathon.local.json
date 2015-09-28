@@ -1,0 +1,28 @@
+{
+    "id": "/bamboo",
+    "instances": 1,
+    "cpus": 0.25,
+    "mem": 64,
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "mrbobbytables/bamboo",
+            "network": "HOST",
+            "parameters": [
+              { "key": "cap-add", "value": "NET_ADMIN" }
+            ]
+        }
+    },
+    "env": {
+        "ENVIRONMENT": "local",
+        "BAMBOO_BIND_ADDRESS": "192.168.111.16:8000",
+        "BAMBOO_ENDPOINT": "http://192.168.111.16:8000",
+        "BAMBOO_ZK_HOST": "192.168.111.10:2181",
+        "BAMBOO_ZK_PATH": "/marathon-haproxy/state",
+        "MARATHON_ENDPOINT": "http://192.168.111.12:8080",
+        "HAPROXY_TEMPLATE_PATH": "/opt/bamboo/config/haproxy.tmplt",
+        "HAPROXY_OUTPUT_PATH": "/etc/haproxy/haproxy.cfg",
+        "HAPROXY_RELOAD_CMD": "iptables -I INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; sleep 0.2; supervisorctl restart haproxy; iptables -D INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; done",
+        "STATSD_ENABLED": "false"
+    }
+}
