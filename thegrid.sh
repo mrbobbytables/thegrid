@@ -38,6 +38,9 @@ clone_containers() {
       git -C "containers/$container" pull
     fi
   done
+  if [[ "$EUID" -eq 0 ]]; then
+    chown -R "$SUDO_USER:$SUDO_USER" containers/
+  fi
 }
 
 pull_containers() {
@@ -198,10 +201,13 @@ start_cluster() {
   y|yes)
     cp "compose_templates/$1.yml" docker-compose.yml
     if [[ "$1" == "host" ]]; then
-      if [[ $SUDO_USER ]]; then
+      if [[ "$EUID" -eq 0 ]]; then
+        host_mod_configs
+        chown "$SUDO_USER:$SUDO_USER" docker-compose.yml
         chown -R "$SUDO_USER:$SUDO_USER" local/
+      else
+        host_mod_configs
       fi
-      host_mod_configs
     fi
     exec docker-compose up  -d --force-recreate
   ;;
@@ -590,6 +596,10 @@ main() {
           fi
           host_create_bridge
           host_create_service_ips
+          if [[ -d containers/ ]]; then
+            chown -R "$SUDO_USER:$SUDO_USER" containers/
+          fi
+          chown -R "$SUDO_USER:$SUDO_USER" local/
           start_cluster "host"
         ;;
 #####--------------------------
