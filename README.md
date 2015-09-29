@@ -27,6 +27,12 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 
 Want to get up and going as fast as possible? Do the following:
 
+**Note:**
+If using RHEL/cent/fedora -- do the following first (**IF A VANILLA SYSTEM**):
+ * Add an entry to your hostfile (`/etc/hosts`) that maps `127.0.1.1` to your hostname.
+ * `sudo iptables --flush` unless you have your own rules in there..in which case you're pretty much on your own.
+
+
 1. Ensure you have docker, docker-compose, and bridge-utils installed.
 2. Clone this repo
 3. `sudo ./thegrid.sh host bootstrap pull`
@@ -110,6 +116,10 @@ This completes the tl;dr.
 
 
 ### Usage
+
+Before even starting the bootstrap process; if you are on a RHEL/cent/fedora system, please do the following first:
+ * Add an entry to your hostfile (`/etc/hosts`) that maps `127.0.1.1` to your hostname.
+ * `sudo iptables --flush` unless you have your own rules and are comfortable modifying them manually.
 
 
 ##### Bootstrapping

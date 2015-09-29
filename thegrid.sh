@@ -61,11 +61,11 @@ pull_containers() {
 check_compose() {
   local dc_check=""
   echo "Checking Docker Compose Dependencies..."
-  dc_check=$(docker-compose --version 2>&1)
-  if echo "$dc_check" | grep -q "command not found"; then
+  if [[ ! -x /usr/local/bin/docker-compose ]]; then
     echo "docker-compose was not found. Cannot continue without installation."
     echo "To install, please execute the following command:"
     echo "curl -L https://github.com/docker/compose/releases/download/VERSION_NUM/docker-compose-$(uname -s)-$(uname -m) > /usr/local/bin/docker-compose"
+    exit 1
   fi
 }
 
@@ -209,7 +209,7 @@ start_cluster() {
         host_mod_configs
       fi
     fi
-    exec docker-compose up  -d --force-recreate
+    exec /usr/local/bin/docker-compose up  -d --force-recreate
   ;;
   n|no|*)
     echo "Start cluster with: docker-compose up -d --force-recreate"
@@ -218,7 +218,7 @@ start_cluster() {
 }
 
 stop_cluster() {
-  docker-compose stop --timeout 30
+  /usr/local/bin/docker-compose stop --timeout 30
   if [[ $(docker ps | grep "mesos-*" | awk '{print $NF}') ]]; then
     for container in $(docker ps | grep "mesos-*" | awk '{print $NF}'); do
       echo "Stopping $container"
