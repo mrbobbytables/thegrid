@@ -84,14 +84,14 @@ If using RHEL/cent/fedora -- do the following first (**IF A VANILLA SYSTEM**):
 
 Lets build a container and push it to a private Registry hosted in the Mesos Cluster.
 
-1. First, an insecure registry entry needs to be added to your docker init. This should be `--insecure-registry registry.marathon.mesos:31111`This is different for Ubuntu-upstart (14.04), Ubuntu-systemd(15.04), and different on other distros. Google is your friend here. I'll give a quick list below:
+1. First, an insecure registry entry needs to be added to your docker init. This should be `--insecure-registry registry.marathon.mesos:31111` This is different for Ubuntu-upstart (14.04), Ubuntu-systemd(15.04), and different on other distros. Google is your friend here. I'll give a quick list below:
  * Ubuntu 14.04 - `/etc/default/docker` - `DOCKER_OPTS`
  * Ubuntu 15.04 - `/etc/systemd/system/multi-user.target.wants/docker.service` - `ExecStart`
  * More Info: [Configuring and Running Docker](https://docs.docker.com/articles/configuring/)
 2. Once added, restart the docker daemon. If Mesos is running execute `./thegrid.sh host stop` to bring things down gracefully, or just stop them and recreate them. It's not a big deal.
 3. `./thegrid.sh host framework marathon post registry` **Note:** the registry volume will be mounted from `/tmp/registy` from the host.
 4. In Jenkins; if this is your first time doing something -- execute step 2 from **'Want to test Jenkins?'** first. Otherwise click on `New Item` and create a new `Freestyle project`. Call it whatever you want.
-5. Set hte `Label Expression` to `mesos-docker`.
+5. Set the `Label Expression` to `mesos-docker`.
 6. Go down to build and add an `Execute Shell` build step. With something similar to the following:
 ```
 git clone https://github.com/mrbobbytables/easyrsa.git
@@ -126,7 +126,7 @@ Before even starting the bootstrap process; if you are on a RHEL/cent/fedora sys
 
 There are two available paths to bootstrapping: `host` and `container`. `host` is the preferred method, but it requires sudo and bridge utils to create a 'mock' private Mesos Network with a bridge. All containers should function as intended with a few caveats in `host` mode and the bridge can be removed, or will automatically be removed upon restart.
 
-`container` mode is bare bones - Mesos / Marathon / Chronos will mostly work. Items can be scheduled, but IPs should be subsituted in Marathon for the public facing IP of the host.
+`container` mode is bare bones - Mesos / Marathon / Chronos will mostly work. Items can be scheduled, but IPs should be substituted in Marathon for the public facing IP of the host.
 
 To quickly get up and going in `host` mode, execute the following:
 `sudo ./thegrid.sh host bootstrap pull`
@@ -137,7 +137,7 @@ or, if you'd prefer to clone the container repos and build them locally:
 In either case, after going through the bootstrap process a directory will be created in the project root called `local`. This will contain all customized configs and containers (certs for OpenVPN, modified marathon templates etc). If you choose to build the OpenVPN container, the client configuration should be found in the `local` directory and titled `client-<public-ip>.ovpn`. **Note:** If you're running this on your main OS and not a virtual machine sitting on top of it, OpenVPN can be disregarded and skipped.
 
 
-Once downloading/building is complete it will then create the `mesos0` bridge network with static IPs desigated to their associated service. For a full list of assignments execute `ip addr show mesos0`. Each service will have an associated IP and label. e.g. `mesos0:jenkins` etc.
+Once downloading/building is complete it will then create the `mesos0` bridge network with static IPs designated to their associated service. For a full list of assignments execute `ip addr show mesos0`. Each service will have an associated IP and label. e.g. `mesos0:jenkins` etc.
 
 After the bridge network has been started, it will then ask you if you wish to start the cluster. Either select yes, or start it after the fact with `docker-compose up -d`.
 
