@@ -82,32 +82,82 @@ If using RHEL/cent/fedora -- do the following first (**IF A VANILLA SYSTEM**):
 
 ##### Want to do something worthwhile with Jenkins?
 
-Lets build a container and push it to a private Registry hosted in the Mesos Cluster.
+Lets build a container that can be used to push things to marathon.
 
 1. First, an insecure registry entry needs to be added to your docker init. This should be `--insecure-registry registry.marathon.mesos:31111` This is different for Ubuntu-upstart (14.04), Ubuntu-systemd(15.04), and different on other distros. Google is your friend here. I'll give a quick list below:
  * Ubuntu 14.04 - `/etc/default/docker` - `DOCKER_OPTS`
  * Ubuntu 15.04 - `/etc/systemd/system/multi-user.target.wants/docker.service` - `ExecStart`
  * More Info: [Configuring and Running Docker](https://docs.docker.com/articles/configuring/)
 2. Once added, restart the docker daemon. If Mesos is running execute `./thegrid.sh host stop` to bring things down gracefully, or just stop them and recreate them. It's not a big deal.
-3. `./thegrid.sh host framework marathon post registry` **Note:** the registry volume will be mounted from `/tmp/registy` from the host.
-4. In Jenkins; if this is your first time doing something -- execute step 2 from **'Want to test Jenkins?'** first. Otherwise click on `New Item` and create a new `Freestyle project`. Call it whatever you want.
+3. `./thegrid.sh host framework marathon post registry` **Note:** the registry volume will be mounted from `/tmp/registry` from the host.
+4. In Jenkins; if this is your first time doing something -- execute step 2 from **'Want to test Jenkins?'** first. Otherwise click on `New Item` and create a new `Freestyle project`. Call it build-curl-slave; or whatever you want.
 5. Set the `Label Expression` to `mesos-docker`.
 6. Go down to build and add an `Execute Shell` build step. With something similar to the following:
 ```
-git clone https://github.com/mrbobbytables/easyrsa.git
-docker build -t registry.marathon.mesos:31111/easyrsa easyrsa/
-docker push registry.marathon.mesos:31111/easyrsa
+touch Dockerfile
+echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
+echo "RUN apt-get update && apt-get -y install curl && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*" >> Dockerfile
+docker build -t registry.marathon.mesos:31111/curl-slave .
+docker push registry.marathon.mesos:31111/curl-slave
 ```
 7. To verify, in the `Build History`, click on the run # (should be 1). Then click on `Console Output`. You should see the output from the executed command.
-8. To doubly verify. from the host execute `docker rmi registry.marathon.mesos:31111/easyrsa` and then do a pull `docker pull registry.marathon.mesos:31111/easyrsa`. It should be downloaded from the registry hosted in mesos.
+8. To doubly verify. from the host execute `docker rmi registry.marathon.mesos:31111/curl-slave` and then do a pull `docker pull registry.marathon.mesos:31111/curl-slave`. It should be downloaded from the registry hosted in mesos.
+9. Back in Jenkins, go back to `Manage Jenkins` -> `Configure System`, and scroll down to the `Cloud` section.
+10. Under `Mesos Cloud`, click on `Advanced...`, then scroll down further and click on `Add Slave Info`.
+11. Set the label string to `mesos-docker-curl`, and click on the `Advanced...` button.
+12. Check `Use Docker Containerizer`, and specify `registry.marathon.mesos:31111/curl-slave` for the `Docker Image`.
+13. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`.
+14. Click on `Add Parameter` and for the parameter key, specify `dns` and for the value, use `192.168.111.15` (the mesos-dns instance).
+15. Click `save`, and the new slave should be ready for use.
+
+
+##### Let's tie it all together now~!
+
+We're going to build a container and have jenkins trigger marathon to spin it up.
+
+1. Click on 'New Item' and create a new `Freestyle project`. Call it `nginx-jm` (for nginx-jenkins-mesos).
+2. For label set it to `mesos-docker-curl` (what we configured in **`Want to do something worthwhile with Jenkins?`**).
+3. Add a new `Execute Shell` Build step and use the following:
+```
+git clone https://github.com/mrbobbytables/nginx-jenkins-marathon-test.git
+echo ${BUILD_NUMBER} > nginx-jenkins-marathon-test/skel/build
+docker build -t registry.marathon.mesos:31111/nginx-jm nginx-jenkins-marathon-test/
+docker tag registry.marathon.mesos:31111/nginx-jm registry.marathon.mesos:31111/nginx-jm:${BUILD_NUMBER}
+docker push registry.marathon.mesos:31111/nginx-jm
+```
+4. Then add a 2nd `Execute Shell` build step with this:
+```
+sed -i -e "s|registry.marathon.mesos:31111/nginx-jm:latest|registry.marathon.mesos:31111/nginx-jm:$BUILD_NUMBER|g" \
+    nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
+curl -X PUT -H "Accept: application/json" -H "Content-Type: application/json" \
+http://192.168.111.12:8080/v2/apps/nginx-jm -d @nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
+```
+This will pull down the repo, inject the jenkins build number into the build file, and build/pushes the container. If it successfully builds the container, it will update the marathon app definition in `nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json` and send it to marathon via a `PUT` request.
+
+5. At this point pop on over to Bamboo (`192.168.111.16:8000`) and delete the `/nginx` rule (if it's still there from earlier), and change the rule for `/nginx-jm` to `path_beg -i /`
+6. Pop on over to your public IP, and you should see a small page displaying the container ID and build # from jenkins.
+7. Now that everything is tied together, pop open new tabs for marathon (`192.168.111.12:8080`), and jenkins (`192.168.111.14:8888`). In jenkins, trigger a new build for `nginx-jm`. Then switch over to marathon. You should see the health bar for the `/nginx-jm` app become a mix of green, grey, and blue. Marathon is executing the upgrade strategy specified in the marathon app definition. It will spin up a new node on the new build expanding the total instances of `nginx-jm` to 3, then phase out one of the old instances. It will do this for all of them. Back on the public facing ip, you should see instances with new container IDs and build numbers.
+
+
+##### Let's roll it back
+
+1. In marathon (`192.168.111.12:8080`), click `/nginx-jm` and then click on `configuration`.
+2. If you scroll down, you should see a list of date/timestamps. These are the previous versions that marathon has executed.
+3. Click on `Apply these settings`. Marathon will then roll back to that version of the deployment.
+4. Pop on over to the public IP and you should start to see the old build number appear after a few refreshes.
+
+
+
+##### This completes the tl;dr.
+Wound up being a bit more than a tl;dr...
 
 
 ##### How do I return my system to normal?
 `./thegrid.sh host stop`
-`./thegrid.sh host clean`
+`sudo ./thegrid.sh host clean`
 
 
-This completes the tl;dr.
+
 
 ---
 
