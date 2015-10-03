@@ -27,34 +27,36 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 
 Want to get up and going as fast as possible? Do the following:
 
-Before you begin --
+##### Before you begin
 
-If using **Ubuntu** -- and you are not on the same version of docker as what is used in the mesos-slave containers (10/2/2015 - 1.8.2). Modify the compose-template in `compose_templates/host.yml` and add this entry to mesosslave:
-`/usr/bin/docker:/usr/bin/docker:ro`. This should fix any compatibility issues between the client and server's docker api version.
+ * For this demo, if you wish to execute everything - I suggest a single VM with more than 2 cores and at least 2gb of ram.
 
-If using **RHEL/cent/fedora** -- do the following first (**IF A VANILLA SYSTEM**):
+ * Ensure you have docker, docker-compose, and bridge-utils installed. If you are on a debian based distro; this should be all that is required.
+
+* If using **RHEL/cent/fedora** -- do the following first (**IF A VANILLA SYSTEM**):
+ * Install a version of docker that is **remote API** compatible with the version used in the `mrbobbytables/mesos-slave` and `mrbobbytables/jenkins-build-base` containers.
  * Add an entry to your hostfile (`/etc/hosts`) that maps `127.0.1.1` to your hostname.
- * `sudo iptables --flush` unless you have your own rules in there..in which case you're pretty much on your own.
+ * `sudo iptables --flush` unless you have your own rules in there..in which case you're on your own.
 
 
 ---
 
-1. Ensure you have docker, docker-compose, and bridge-utils installed.
-2. Clone this repo
-3. `sudo ./thegrid.sh host bootstrap pull`
+
+1. Clone this repo
+2. `sudo ./thegrid.sh host bootstrap pull`
   * pulls images
   * creates mesos0 bridge and container IPs
-  * creates openvpn config. **Note:** Follow the directions, generate a server cert and a client cert. The prompts do change for client cert gen and you can't just enter through it all. Client config for importing will be at `local/client-<public_ip>.ovpn`. If you mess it up, you can regen it after the fact with `sudo ./thegrid.sh host ovpn`
+  * creates openvpn config. **Note:** Follow the directions, and generate a server cert and a client cert. The prompts do change for client cert gen and you can't just enter through it all. Client config for importing will be at `local/client-<public_ip>.ovpn`. If you make a mistake, you can regen it after the fact with `sudo ./thegrid.sh host ovpn`
   * creates a customized docker-compose.yml file.
   * starts cluster (if not started, start with `./thegrid host up` or `docker-compose up -d`)
-4. Once Marathon is up and running execute the following:
+3. Once Marathon is up and running execute the following:
   * `./thegrid.sh host framework marathon post mesos-dns`
   * `./thegrid.sh host framework marathon post ovpn` (if config was made)
   * `./thegrid.sh host framework marathon post bamboo`
-5. If you did create an OpenVPN container, now would be the time to connect. The below should be available
+4. If you did create an OpenVPN container, now would be the time to connect. The below should be available
   * Mesos-master: `master.mesos:5050`
-  * Marathon: `marathon.mesos:8080`
-  * Chronos: `chronos.mesos:4400`
+  * Marathon: `192.168.111.12:8080`
+  * Chronos: `192.168.111.13:4400`
   * Jenkins: `192.168.111.14:8888`
   * Bamboo: `192.168.111.16:8000`
 
@@ -63,7 +65,7 @@ If using **RHEL/cent/fedora** -- do the following first (**IF A VANILLA SYSTEM**
 ##### Want to schedule a cron job with Chronos?
 
 1. `./thegrid.sh host framework chronos post test`
-2. Connect to Chronos (`chronos.mesos:4400`)
+2. Connect to Chronos (`192.168.111.13:4400`)
 3. You should see a job called `test`. Select it and in the new menu that pops up press the `Force Run` button. It looks like a play button. If successful, the UI will update with the `LAST` column showing `SUCCESS`
 
 
@@ -107,7 +109,7 @@ docker build -t registry.marathon.mesos:31111/curl-slave .
 docker push registry.marathon.mesos:31111/curl-slave
 ```
 7. To verify, in the `Build History`, click on the run # (should be 1). Then click on `Console Output`. You should see the output from the executed command.
-8. To doubly verify. from the host execute `docker rmi registry.marathon.mesos:31111/curl-slave` and then do a pull `docker pull registry.marathon.mesos:31111/curl-slave`. It should be downloaded from the registry hosted in mesos.
+8. To doubly verify, from the host execute `docker rmi registry.marathon.mesos:31111/curl-slave` and then do a pull `docker pull registry.marathon.mesos:31111/curl-slave`. It should be downloaded from the registry hosted in mesos.
 9. Back in Jenkins, go back to `Manage Jenkins` -> `Configure System`, and scroll down to the `Cloud` section.
 10. Under `Mesos Cloud`, click on `Advanced...`, then scroll down further and click on `Add Slave Info`.
 11. Set the label string to `mesos-docker-curl`, and click on the `Advanced...` button.
@@ -121,7 +123,7 @@ docker push registry.marathon.mesos:31111/curl-slave
 
 We're going to build a container and have jenkins trigger marathon to spin it up.
 
-1. Click on 'New Item' and create a new `Freestyle project`. Call it `nginx-jm` (for nginx-jenkins-mesos).
+1. Click on `New Item` and create a new `Freestyle project`. Call it `nginx-jm` (for nginx-jenkins-mesos).
 2. For label set it to `mesos-docker-curl` (what we configured in **`Want to do something worthwhile with Jenkins?`**).
 3. Add a new `Execute Shell` Build step and use the following:
 ```
@@ -138,7 +140,7 @@ sed -i -e "s|registry.marathon.mesos:31111/nginx-jm:latest|registry.marathon.mes
 curl -X PUT -H "Accept: application/json" -H "Content-Type: application/json" \
 http://192.168.111.12:8080/v2/apps/nginx-jm -d @nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
 ```
-This will pull down the repo, inject the jenkins build number into the build file, and build/pushes the container. If it successfully builds the container, it will update the marathon app definition in `nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json` and send it to marathon via a `PUT` request.
+This will pull down the repo, inject the jenkins build number into the build file, and build/push the container. If it successfully builds the container, it will update the marathon app definition in `nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json` and send it to marathon via a `PUT` request.
 
 5. At this point pop on over to Bamboo (`192.168.111.16:8000`) and delete the `/nginx` rule (if it's still there from earlier), and change the rule for `/nginx-jm` to `path_beg -i /`
 6. Pop on over to your public IP, and you should see a small page displaying the container ID and build # from jenkins.
@@ -174,6 +176,7 @@ Wound up being a bit more than a tl;dr...
 ### Usage
 
 Before even starting the bootstrap process; if you are on a RHEL/cent/fedora system, please do the following first:
+ * Install a version of docker that is **remote API** compatible with the version used in the `mrbobbytables/mesos-slave` and `mrbobbytables/jenkins-build-base` containers.
  * Add an entry to your hostfile (`/etc/hosts`) that maps `127.0.1.1` to your hostname.
  * `sudo iptables --flush` unless you have your own rules and are comfortable modifying them manually.
 
@@ -213,12 +216,9 @@ This will start mesos-dns and OpenVPN. FYI -- The above commands are simply curl
 
 Once connected, you should be able to use the following services:
  - `master.mesos:5050` - Mesos Master
- - `marathon.mesos:8080` - Marathon
- - `chronos.mesos:4400` - Chronos
+ - `192.168.111.12:8080` - Marathon
+ - `192.168.111.13:4400` - Chronos
  - `192.168.111.14:8888` - Jenkins
-
-**Note:** Jenkins will not register a DNS entry as the framework will not register with Mesos until a job is scheduled. This would not be the case in a prod deployment where Jenkins would be running as a long running Marathon task.
-
 
 ---
 
@@ -241,6 +241,30 @@ and
 `<name>.chronos.local.json`
 
 You can add your own within those directories as long as you adhere to the naming scheme.; but if you decide to move forward with Marathon and Chronos - I **HIGHLY** recommend learning the curl commands or using some other tool to interact with their REST APIs.
+
+---
+
+##### Using Chronos
+
+For demo purposes, there is only a single test job available for Chronos.
+
+First post the test job th chronos:
+
+`./thegrid.sh host framework chronos post test`
+
+Then connect to the chronos web interface on `192.168.111.13:4400`.
+
+You should see a single job listed called `test`. Click on it to open the job settings panel on the right hand side.
+
+Click the `Force Run` button (icon 2nd from the left) to execute an on demand task.
+
+Once complete; the `LAST SUCCESS` time should be updated and `SUCCESS` should be listed in job list panel.
+
+To see the job output, goto the mesos master (`192.168.111.11:5050`) and click on the completed Chronos task's `sandbox` link. Then click on `stdout`. You should see something similar to the following:
+```
+Starting task ct:1443881700000:0:test:
+lookma, i'm scheduled!
+```
 
 
 ---
@@ -277,7 +301,7 @@ After services have started, connect to `http://192.168.111.14:8888`. Before any
 
 With Jenkins configured, jobs may now be added.
 
-By default; there are two available build container labels. `mesos` is a vanilla instance of the [mrbobbytables/jenkins-build-base](https://github.com/mrbobbytables/jenkins-build-base) container and is suitable for quick testing like echoing output. The other `mesos-docker` is the same container, but with `/usr/bin/docker` and `/var/run/docker.sock` mounted. This container is suitable for building other containers.
+By default, there are two available build container labels. `mesos` is a vanilla instance of the [mrbobbytables/jenkins-build-base](https://github.com/mrbobbytables/jenkins-build-base) container and is suitable for quick testing like echoing output. The other `mesos-docker` is the same container, but with `/usr/bin/docker` and `/var/run/docker.sock` mounted. This container is suitable for building other containers.
 
 To test simple execution, create a new `Freestyle project` job. At the job configuration page, set the label to `mesos`, and then add a new `Execute Shell` Build Step. Simply put something like:
 
@@ -302,25 +326,97 @@ Modifying the docker daemon settings is rather host specific [Docker's docs cove
 
 All that must be added is `--insecure-registry registry.marathon.mesos:31111` and restart the docker daemon.
 
-With that, bring up the cluster (`docker-compose up -d` or `./thegrid.sh host up`) and push the registry to marathon with
+1. With that done, bring up the cluster (`docker-compose up -d` or `./thegrid.sh host up`) and push the registry to marathon with
 
 `./thegrid.sh host framework marathon post registry`
 
-After the registry is up. Add a new build job to Jenkins, and remember -- if this is the first time this instance of Jenkins has been run, a config **MUST** be changed under `Configure System`.
+2. After the registry is up. Add a new build job to Jenkins, and remember -- if this is the first time this instance of Jenkins has been run, a config **MUST** be changed under `Configure System`.
 
-As for the build job itself, set it up similar to the previous job, but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to do something similar to the following:
+4. Create a new build job, and set it up similarly to the previous job (`Freestyle projeft`) but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to the following:
 ```
-git clone https://github.com/mrbobbytables/easyrsa.git
-docker build -t registry.marathon.mesos:31111/easyrsa easyrsa/
-docker push registry.marathon.mesos:31111/easyrsa
-```
-
-You can verify it's success on the host by wiping the easyrsa image and pulling it from the registry:
-```
-docker rmi registry.marathon.mesos:31111/easyrsa
-docker pull registry.marathon.mesos:31111/easyrsa
+touch Dockerfile
+echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
+echo "RUN apt-get update && apt-get -y install curl && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*" >> Dockerfile
+docker build -t registry.marathon.mesos:31111/curl-slave .
+docker push registry.marathon.mesos:31111/curl-slave
 ```
 
+5. Save the job, and click `Build Now`.
+
+6. Once the build is completel, you can verify it's success on the host by wiping the easyrsa image and pulling it from the registry:
+```
+docker rmi registry.marathon.mesos:31111/curl-slave
+docker pull registry.marathon.mesos:31111/curl-slave
+```
+
+**Pushing containers to Mesos with Marathon**
+
+This takes advantage of the new build slave built in the previous exercise. Before you begin, this must be added as a new slave in the Jenkins Mesos Cloud config.
+
+1. Go back to `Manage Jenkins` -> `Configure System`, and scroll down to the `Cloud` section.
+
+2. Under `Mesos Cloud`, click on `Advanced...`, then scroll down further and click on `Add Slave Info`.
+
+3. Set the label string to `mesos-docker-curl`, and click on the `Advanced...` button.
+
+4. Check `Use Docker Containerizer`, and specify `registry.marathon.mesos:31111/curl-slave` for the `Docker Image`.
+
+5. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`.
+
+6. Click on `Add Parameter` and for the parameter key, specify `dns` and for the value, use `192.168.111.15` (the mesos-dns instance).
+
+7. Click `save`, and the new slave should be ready for use.
+
+8. Scroll back up and click on `New Item`. Then create a new `Freestyle project`, and call it `nginx-jm` (for nginx-jenkins-mesos).
+
+9. For label set it to `mesos-docker-curl` (what was defined in step 3).
+
+10. Add a new `Execute Shell` Build step and use the following:
+```
+git clone https://github.com/mrbobbytables/nginx-jenkins-marathon-test.git
+echo ${BUILD_NUMBER} > nginx-jenkins-marathon-test/skel/build
+docker build -t registry.marathon.mesos:31111/nginx-jm nginx-jenkins-marathon-test/
+docker tag registry.marathon.mesos:31111/nginx-jm registry.marathon.mesos:31111/nginx-jm:${BUILD_NUMBER}
+docker push registry.marathon.mesos:31111/nginx-jm
+```
+
+11. Then add a 2nd `Execute Shell` build step with this:
+```
+sed -i -e "s|registry.marathon.mesos:31111/nginx-jm:latest|registry.marathon.mesos:31111/nginx-jm:$BUILD_NUMBER|g" \
+    nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
+curl -X PUT -H "Accept: application/json" -H "Content-Type: application/json" \
+http://192.168.111.12:8080/v2/apps/nginx-jm -d @nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
+```
+This will pull down the repo, inject the jenkins build number into the build file, and build/push the container. If it successfully builds the container, it will update the marathon app definition in `nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json` and send it to marathon via a `PUT` request.
+
+12. Save the job and click `Build Now`.
+
+13. At this stage, if you wish you can watch it complete and push the build or proceed onto the next step.
+
+14. Open the Bamboo config page (`192.168.111.16:8000`) and delete the `/nginx` rule. If you're still running the `/nginx` marathon app, I'd delete it as it is no longer required at this point. Once the rule is deleted and `/nginx-jm` has started to deploy, modify `/nginx-jm`'s rule to be `path_beg -i /`.
+
+15. Open a page and point it to your public IP. You should see a small page displaying the container ID and build # from jenkins, and if you refresh it a few times -- you should see multiple container ID's. HAproxy is roud-robin load balancing between them.
+
+16. Now that everything is tied together, open a new browser tab for marathon (`192.168.111.12:8080`), jenkins (`192.168.111.14:8888`), and your public IP. Then, in jenkins, trigger a new build for `nginx-jm` and switch back to Marathon. You should see the health bar for the `/nginx-jm` app become a mix of green, grey, and blue. Marathon is executing the upgrade strategy specified in the marathon app definition. It will deploy a new node on the new build expanding the total instances of `nginx-jm` to 3, then phase out one of the old instances. It will do this for all of them.
+
+17. Switch to the tab with your public IP, and start to refresh the page. You should see instances with new container IDs and build numbers until all instances are safely on the new build.
+
+
+**Rolling back a deployment**
+
+In an instance where something was pushes live that shouldn't have been and you need to rollback, Marathon has a very way of executing this.
+
+1. In marathon (`192.168.111.12:8080`), click `/nginx-jm` and then click on `configuration`.
+
+2. Scroll down and you should see a list of date/timestamps. These are all the previous versions of that marathon app definition that have been executed.
+
+3. Click on an older one and then press `Apply these settings`. Marathon will then roll back to that version of the deployment in the same fashion that it was deployed. -- Adding a new instance on the old build, removing an older instance and so on.
+
+4. Go back to your public facing IP, and press refresh a few times. You should see instances with the new container IDs and the build number of the version you selected in the step 3.
+
+---
+
+**Note:**
 When done testing, be sure to remove the insecure registry entry from your docker daemon settings.
 
 ---
@@ -377,6 +473,7 @@ When done testing, be sure to remove the insecure registry entry from your docke
 * ovpn
 * registry
 * nginx
+* nginx-jm (must be created first)
 
 **Container:**
 * nginx
@@ -396,19 +493,22 @@ When done testing, be sure to remove the insecure registry entry from your docke
 **Note:** Containers spun up via marathon that have host networking will resolve to the slave IP (as expected). However there will be no srv records reporting the ports they're open on. This is not an issue in production.
 
 
-| Container               | IP                                   | Connection label  | Port(s)                   | DNS                                             |
-|-------------------------|--------------------------------------|-------------------|---------------------------|-------------------------------------------------|
-| `zookeeper`             | `192.168.111.10`                     | `mesos0:zk`       | `2181,2888,3888`          |                                                 |
-| `mesosmaster`           | `192.168.111.11`                     | `mesos0:master`   | `5050,9000`               | `master.mesos`                                  |
-| `mesosslave`            | `<public facing ip>`                 | `<none>`          | `5051,9100`               | `slave.mesos`                                   |
-| `marathon`              | `192.168.111.12`                     | `mesos0:marathon` | `8080,9200`               | `marathon.mesos`                                |
-| `chronos`               | `192.168.111.13`                     | `mesos0:chronos`  | `4400,9300`               | `chronos.mesos`                                 |
-| `jenkins`               | `192.168.111.14`                     | `mesos0:jenkins`  | `8888,9400`               |                                                 |
-| `mesos-dns`             | `192.168.111.15`                     | `mesos0:dns`      | `53,8123`                 | `mesos-dns.marathon.mesos` (resolves as public) |
-| `bamboo`                | `<public facing ip>, 192.168.111.16` | `mesos0:bamboo`   | `80,8000`                 | `bamboo.marathon.mesos` (resolves as public)    |
-| `openvpn`               | `<public facing ip>, 192.168.111.17` | `mesos0:ovpn`     | `1194`                    | `ovpn.marathon.mesos` (resolves as public)      |
-| `distribution/registry` | `<docker0 network>`                  |                   | `31111`                   | `registry.marathon.mesos`                       |
-| `library/nginx`         | `<docker0 network>`                  |                   | `<port from mesos range>` | `nginx.marathon.mesos`                          |
+| Container               | IP                                   | Connection label  | Port(s)                   | DNS                        |
+|-------------------------|--------------------------------------|-------------------|---------------------------|----------------------------|
+| `zookeeper`             | `192.168.111.10`                     | `mesos0:zk`       | `2181,2888,3888`          |                            |
+| `mesosmaster`           | `192.168.111.11`                     | `mesos0:master`   | `5050,9000`               | `master.mesos`             |
+| `mesosslave`            | `<public facing ip>`                 | `<none>`          | `5051,9100`               |                            |
+| `marathon`              | `192.168.111.12`                     | `mesos0:marathon` | `8080,9200`               |                            |
+| `chronos`               | `192.168.111.13`                     | `mesos0:chronos`  | `4400,9300`               |                            |
+| `jenkins`               | `192.168.111.14`                     | `mesos0:jenkins`  | `8888,9400`               |                            |
+| `mesos-dns`             | `192.168.111.15`                     | `mesos0:dns`      | `53,8123`                 | `mesos-dns.marathon.mesos` |
+| `bamboo`                | `<public facing ip>, 192.168.111.16` | `mesos0:bamboo`   | `80,8000`                 | `bamboo.marathon.mesos`    |
+| `openvpn`               | `<public facing ip>, 192.168.111.17` | `mesos0:ovpn`     | `1194`                    | `ovpn.marathon.mesos`      |
+| `distribution/registry` | `<docker0 network>`                  |                   | `31111`                   | `registry.marathon.mesos`  |
+| `library/nginx`         | `<docker0 network>`                  |                   | `<port from mesos range>` | `nginx.marathon.mesos`     |
+| `nginx-jm`              | `<docker0 network>`                  |                   | `<port from mesos range>` | `nginx-jm.marathon.mesos`  |
+
+**NOTE:** All dns names excluding `master.mesos` will resolve to the public IP.
 
 
 ---

@@ -47,6 +47,7 @@ mesosslave:
     - /sys:/sys:ro
     - /usr/bin/docker:/usr/bin/docker:ro
     - /var/run/docker.sock:/var/run/docker.sock:rw
+    - /usr/bin/docker:/usr/bin/docker:ro
 
 marathon:
   container_name: marathon

@@ -69,6 +69,30 @@ check_compose() {
   fi
 }
 
+detect_host_os() {
+  if [[ -f /etc/os-release ]]; then
+    if ! cat /etc/os-release | grep -Po '(?<=^ID=|ID_LIKE=).*' | grep -q debian; then
+      echo "Host OS detected as a non-debian based distribution."
+      echo "Removing /usr/bin/docker volume mount from docker-compose.yml"
+      echo "Please ensure your docker install is remote api compatible with the version installed"
+      echo "in the mesos-slave and jenkins-build-base containers."
+      sed -i -e "/\/usr\/bin\/docker:\/usr\/bin\/docker:ro/d"  \
+             -e "/JENKINS_MESOS_SLAVE_2_VOL_2/d"               \
+                docker-compose.yml
+    fi
+  else
+    echo "!#!#!# WARNING !#!#!#"
+    echo "Cannot determine host OS."
+    echo "If you are on a debian based platform; you should be able to proceed."
+    echo "If you are on a redhat or other platform; remove the following from docker-compose.yml:"
+    echo "- /usr/bin/docker:/usr/bin/docker:ro"
+    echo "- JENKINS_MESOS_SLAVE_2_VOL_2=/usr/bin/docker::/usr/bin/docker::ro"
+    echo "Then ensure docker client/server api versions are compatible by checking the versions installed in the"
+    echo "mesos-slave and jenkins-build-base containers."
+    read -t 30 -p "Press Enter or wait 30 seconds to continue."
+  fi
+}
+
 get_host_ip() {
   if [[ ! $HOST_IP ]]; then  
     local netdev=""
@@ -209,9 +233,11 @@ start_cluster() {
         host_mod_configs
       fi
     fi
+    detect_host_os
     exec /usr/local/bin/docker-compose up  -d --force-recreate
   ;;
   n|no|*)
+    detect_host_os
     echo "Start cluster with: docker-compose up -d --force-recreate"
   ;;
   esac 
