@@ -27,11 +27,17 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 
 Want to get up and going as fast as possible? Do the following:
 
-**Note:**
-If using RHEL/cent/fedora -- do the following first (**IF A VANILLA SYSTEM**):
+Before you begin --
+
+If using **Ubuntu** -- and you are not on the same version of docker as what is used in the mesos-slave containers (10/2/2015 - 1.8.2). Modify the compose-template in `compose_templates/host.yml` and add this entry to mesosslave:
+`/usr/bin/docker:/usr/bin/docker:ro`. This should fix any compatibility issues between the client and server's docker api version.
+
+If using **RHEL/cent/fedora** -- do the following first (**IF A VANILLA SYSTEM**):
  * Add an entry to your hostfile (`/etc/hosts`) that maps `127.0.1.1` to your hostname.
  * `sudo iptables --flush` unless you have your own rules in there..in which case you're pretty much on your own.
 
+
+---
 
 1. Ensure you have docker, docker-compose, and bridge-utils installed.
 2. Clone this repo
