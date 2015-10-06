@@ -1,5 +1,6 @@
 *.swp
 *.ovpn
+.vagrant
 /docker-compose.yml
 containers/
 local/

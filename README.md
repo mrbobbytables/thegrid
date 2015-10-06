@@ -7,7 +7,7 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 ### Index
 
 * [tl;dr](#tldr)
-* [Usage (the non tl;dr version)](#usage)
+* [Tutorial (the non tl;dr version)](#tutorial)
 * [Notes and Tips](#notes-and-tips)
  * [caveats](#caveats)
 * [Quick Reference](#quick-reference)
@@ -29,7 +29,9 @@ Want to get up and going as fast as possible? Do the following:
 
 ##### Before you begin
 
- * For this demo, if you wish to execute everything - I suggest a single VM with more than 2 cores and at least 2gb of ram.
+ * For this demo, a vagrant image is provided, and the instructions will assume it is to be used. If you wish to execute everything without vagrant; please consider the following:
+
+ * VM spec wise, more than 2 cores is ideal along with 2gbs of ram. It can function with 2 core, but resource scheduling may wind up queueing some tasks towards the end of the demo.
 
  * Ensure you have docker, docker-compose, and bridge-utils installed. If you are on a debian based distro; this should be all that is required.
 
@@ -43,18 +45,21 @@ Want to get up and going as fast as possible? Do the following:
 
 
 1. Clone this repo
-2. `sudo ./thegrid.sh host bootstrap pull`
+2. Install the salt plugin with - `vagrant plugin install vagrant-salt`
+3. Bring up the vagrant image - `vagrant up`
+4. Once up and running, `vagrant ssh` and switch to the `/vagrant` directory.
+5. `sudo ./thegrid.sh host bootstrap pull`
   * pulls images
   * creates mesos0 bridge and container IPs
   * creates openvpn config. **Note:** Follow the directions, and generate a server cert and a client cert. The prompts do change for client cert gen and you can't just enter through it all. Client config for importing will be at `local/client-<public_ip>.ovpn`. If you make a mistake, you can regen it after the fact with `sudo ./thegrid.sh host ovpn`
   * creates a customized docker-compose.yml file.
-  * starts cluster (if not started, start with `./thegrid host up` or `docker-compose up -d`)
-3. Once Marathon is up and running execute the following:
+  * starts cluster (if not started, start with `./thegrid.sh host up` or `docker-compose up -d`)
+6. Once Marathon is up and running execute the following:
   * `./thegrid.sh host framework marathon post mesos-dns`
   * `./thegrid.sh host framework marathon post ovpn` (if config was made)
   * `./thegrid.sh host framework marathon post bamboo`
-4. If you did create an OpenVPN container, now would be the time to connect. The below should be available
-  * Mesos-master: `master.mesos:5050`
+7. If you did create an OpenVPN container, now would be the time to connect. The below should be available
+  * Mesos-master: `192.168.111.11:5050`
   * Marathon: `192.168.111.12:8080`
   * Chronos: `192.168.111.13:4400`
   * Jenkins: `192.168.111.14:8888`
@@ -114,7 +119,7 @@ docker push registry.marathon.mesos:31111/curl-slave
 10. Under `Mesos Cloud`, click on `Advanced...`, then scroll down further and click on `Add Slave Info`.
 11. Set the label string to `mesos-docker-curl`, and click on the `Advanced...` button.
 12. Check `Use Docker Containerizer`, and specify `registry.marathon.mesos:31111/curl-slave` for the `Docker Image`.
-13. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`.
+13. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`. If on an Ubuntu host, add another volume with `/usr/bin/docker` for both paths, and mark it as read only.
 14. Click on `Add Parameter` and for the parameter key, specify `dns` and for the value, use `192.168.111.15` (the mesos-dns instance).
 15. Click `save`, and the new slave should be ready for use.
 
@@ -173,15 +178,20 @@ Wound up being a bit more than a tl;dr...
 ---
 
 
-### Usage
+### Tutorial
 
-Before even starting the bootstrap process; if you are on a RHEL/cent/fedora system, please do the following first:
+Before even starting the bootstrap process; if you are **NOT** going to use the vagrant image and are on a RHEL/cent/fedora system, please do the following first:
  * Install a version of docker that is **remote API** compatible with the version used in the `mrbobbytables/mesos-slave` and `mrbobbytables/jenkins-build-base` containers.
  * Add an entry to your hostfile (`/etc/hosts`) that maps `127.0.1.1` to your hostname.
  * `sudo iptables --flush` unless you have your own rules and are comfortable modifying them manually.
 
 
 ##### Bootstrapping
+
+**Note: If using Vagrant**
+Before you bootstrap, please install the `vagrant-salt` plugin. Once installed, you may `vagrant up` and then `vagrant ssh`. For the rest of this tutorial, assume working out of the `/vagrant` directory within the vm.
+
+---
 
 There are two available paths to bootstrapping: `host` and `container`. `host` is the preferred method, but it requires sudo and bridge utils to create a 'mock' private Mesos Network with a bridge. All containers should function as intended with a few caveats in `host` mode and the bridge can be removed, or will automatically be removed upon restart.
 
@@ -215,7 +225,7 @@ After that start the services with:
 This will start mesos-dns and OpenVPN. FYI -- The above commands are simply curl commands under the hood that hit the [Marathon REST API](https://mesosphere.github.io/marathon/docs/rest-api.html).
 
 Once connected, you should be able to use the following services:
- - `master.mesos:5050` - Mesos Master
+ - `192.168.111.11:5050` - Mesos Master
  - `192.168.111.12:8080` - Marathon
  - `192.168.111.13:4400` - Chronos
  - `192.168.111.14:8888` - Jenkins
@@ -343,7 +353,7 @@ docker push registry.marathon.mesos:31111/curl-slave
 
 5. Save the job, and click `Build Now`.
 
-6. Once the build is completel, you can verify it's success on the host by wiping the easyrsa image and pulling it from the registry:
+6. Once the build is completed, you can verify it's success on the host by wiping the curl slave image and pulling it from the registry:
 ```
 docker rmi registry.marathon.mesos:31111/curl-slave
 docker pull registry.marathon.mesos:31111/curl-slave
@@ -361,7 +371,7 @@ This takes advantage of the new build slave built in the previous exercise. Befo
 
 4. Check `Use Docker Containerizer`, and specify `registry.marathon.mesos:31111/curl-slave` for the `Docker Image`.
 
-5. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`.
+5. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`. If on an Ubuntu host, add another volume with `/usr/bin/docker` for both paths, and mark it as read only.
 
 6. Click on `Add Parameter` and for the parameter key, specify `dns` and for the value, use `192.168.111.15` (the mesos-dns instance).
 
@@ -395,7 +405,7 @@ This will pull down the repo, inject the jenkins build number into the build fil
 
 14. Open the Bamboo config page (`192.168.111.16:8000`) and delete the `/nginx` rule. If you're still running the `/nginx` marathon app, I'd delete it as it is no longer required at this point. Once the rule is deleted and `/nginx-jm` has started to deploy, modify `/nginx-jm`'s rule to be `path_beg -i /`.
 
-15. Open a page and point it to your public IP. You should see a small page displaying the container ID and build # from jenkins, and if you refresh it a few times -- you should see multiple container ID's. HAproxy is roud-robin load balancing between them.
+15. Open a page and point it to your public IP. You should see a small page displaying the container ID and build # from jenkins, and if you refresh it a few times -- you should see multiple container ID's. HAproxy is round-robin load balancing between them.
 
 16. Now that everything is tied together, open a new browser tab for marathon (`192.168.111.12:8080`), jenkins (`192.168.111.14:8888`), and your public IP. Then, in jenkins, trigger a new build for `nginx-jm` and switch back to Marathon. You should see the health bar for the `/nginx-jm` app become a mix of green, grey, and blue. Marathon is executing the upgrade strategy specified in the marathon app definition. It will deploy a new node on the new build expanding the total instances of `nginx-jm` to 3, then phase out one of the old instances. It will do this for all of them.
 
@@ -656,3 +666,5 @@ Chronos job files must be [name].chronos.local.json e.g.
 test_job.chronos.local.json
 
 ```
+
+

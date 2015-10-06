@@ -105,7 +105,7 @@ get_host_ip() {
     bind_ip="${bind_ip:-"$local_ip"}"
     export HOST_IP="$bind_ip"
   else
-    "$HOST_IP already defined. Using $HOST_IP"
+    echo "$HOST_IP already defined. Using $HOST_IP"
   fi
 }
 
@@ -136,15 +136,18 @@ put_marathon() {
   if [[ "$(docker inspect -f '{{.State.Running}}' marathon)" == "true" ]]; then
     local marathon_ip=""
     local marathon_app=""
+    local marathon_app_name=""
     if [[ $# -eq 1 ]]; then
       marathon_ip="$(docker inspect --format='{{.NetworkSettings.IPAddress}}' marathon)"
       marathon_app="local/marathon_apps/$1.container.marathon.local.json"
+      marathon_app_name="$1"
     else
       marathon_ip="$1"
       marathon_app="local/marathon_apps/$2.host.marathon.local.json"
+      marathon_app_name="$2"
     fi
     if [[ -f "$marathon_app" ]]; then
-      curl -X PUT -H "Content-Type: application/json" "$marathon_ip:8080/v2/apps" -d "@$marathon_app"
+      curl -X PUT -H "Content-Type: application/json" "$marathon_ip:8080/v2/apps/$marathon_app_name" -d "@$marathon_app"
     else
      echo "$marathon_app not found."
      exit 1
