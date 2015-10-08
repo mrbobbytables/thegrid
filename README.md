@@ -6,7 +6,7 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 
 ### Index
 
-* [tl;dr](#tldr)
+* [tl;dr tutorial](#tldr-tutorial)
 * [Tutorial (the non tl;dr version)](#tutorial)
 * [Notes and Tips](#notes-and-tips)
  * [caveats](#caveats)
@@ -23,13 +23,13 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 
 ---
 ---
-### tl;dr
+### tl;dr tutorial
 
 Want to get up and going as fast as possible? Do the following:
 
 ##### Before you begin
 
- * For this demo, a vagrant image is provided, and the instructions will assume it is to be used. If you wish to execute everything without vagrant; please consider the following:
+ * For this demo, a vagrant image is provided and the instructions will assume it is to be used. If you wish to execute everything without vagrant; please consider the following:
 
  * VM spec wise, more than 2 cores is ideal along with 2gbs of ram. It can function with 2 core, but resource scheduling may wind up queueing some tasks towards the end of the demo.
 
@@ -43,22 +43,29 @@ Want to get up and going as fast as possible? Do the following:
 
 ---
 
+**Note** If using the vagrant image, the public IP will be `192.168.99.10`
 
 1. Clone this repo
-2. Install the salt plugin with - `vagrant plugin install vagrant-salt`
+
+2. Install the vagrant salt plugin with - `vagrant plugin install vagrant-salt`
+
 3. Bring up the vagrant image - `vagrant up`
+
 4. Once up and running, `vagrant ssh` and switch to the `/vagrant` directory.
+
 5. `sudo ./thegrid.sh host bootstrap pull`
   * pulls images
   * creates mesos0 bridge and container IPs
   * creates openvpn config. **Note:** Follow the directions, and generate a server cert and a client cert. The prompts do change for client cert gen and you can't just enter through it all. Client config for importing will be at `local/client-<public_ip>.ovpn`. If you make a mistake, you can regen it after the fact with `sudo ./thegrid.sh host ovpn`
   * creates a customized docker-compose.yml file.
   * starts cluster (if not started, start with `./thegrid.sh host up` or `docker-compose up -d`)
+
 6. Once Marathon is up and running execute the following:
   * `./thegrid.sh host framework marathon post mesos-dns`
   * `./thegrid.sh host framework marathon post ovpn` (if config was made)
   * `./thegrid.sh host framework marathon post bamboo`
-7. If you did create an OpenVPN container, now would be the time to connect. The below should be available
+
+7. If you did create an OpenVPN container, now would be the time to connect. The below should be available:
   * Mesos-master: `192.168.111.11:5050`
   * Marathon: `192.168.111.12:8080`
   * Chronos: `192.168.111.13:4400`
@@ -69,43 +76,67 @@ Want to get up and going as fast as possible? Do the following:
 
 ##### Want to schedule a cron job with Chronos?
 
-1. `./thegrid.sh host framework chronos post test`
+1. execute `./thegrid.sh host framework chronos post test` **Note:** No response will be returned, verification must be done in chronos.
+
 2. Connect to Chronos (`192.168.111.13:4400`)
-3. You should see a job called `test`. Select it and in the new menu that pops up press the `Force Run` button. It looks like a play button. If successful, the UI will update with the `LAST` column showing `SUCCESS`
+
+3. You should see a job called `test`. Select it and in the new menu that pops up press the `Force Run` button. If successful, the UI will update with the `LAST` column showing `SUCCESS`
 
 
 ##### Want to test Bamboo?
 
 1. `./thegrid.sh host framework marathon post nginx`
+
 2. Connect to Bamboo's management page (`192.168.111.16:8000`)
+
 3. Change the ACL rule for nginx to `path_beg -i /`
-4. Connect to the public facing IP of your slave on port 80. It should now be the default nginx page.
+
+4. Connect to the public facing IP of your slave on port 80 (vagrant IP: `192.168.99.10`). It should now be the default nginx page.
+
 5. When done kill nginx by executing `./thegrid.sh host framework marathon del nginx`.
+
 6. Refresh the Bamboo UI and it should be gone.
 
 ##### Want to test Jenkins?
 
 1. Connect to Jenkins (`192.168.111.14:8888`)
-2. Goto `Manage Jenkins` -> `Configure System` and change a setting. I like to disable sshd. Then save. If you don't, you're going to have a bad time and an NPE error will be thrown.
-3. Click on `New Item` and create a new `Freestyle project`. Call it whatever you want.
+
+2. Goto `Manage Jenkins` -> `Configure System` and change a setting (e.g. disable sshd). Then save. If you don't, Jenkins will throw an NPE error when attempting to schedule the job.
+
+3. Click on `New Item` and create a new `Freestyle project`. It can be called whatever you wish.
+
 4. Set `Label Expression` to `mesos`.
-5. Go down to build and add an `Execute Shell` build step; and give it some command to execute. An example could be something like `echo "look ma, I scheduled!`. Then save the job.
-6. Once saved, hit `Build Now`. You should see it add an offline slave, the offline slave will then be brought online and the job will run.
-7. To verify, in the `Build History`, click on the run # (should be 1). Then click on `Console Output`. You should see the output from the executed command.
+
+5. Scoll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
+
+6. Go down to build and add an `Execute Shell` build step; and give it some command to execute. An example could be something like `echo "look ma, I scheduled!"`. Then save the job.
+
+7. Once saved, hit `Build Now`. You should see it add an offline slave. The offline slave will then be brought online and the job will run.
+
+8. To verify, in the `Build History`, click on the run # (should be 1). Then click on `Console Output`. You should see the output from the executed command.
 
 ##### Want to do something worthwhile with Jenkins?
 
 Lets build a container that can be used to push things to marathon.
 
+**Note** If using the vagrant image, skip to step 3.
+
 1. First, an insecure registry entry needs to be added to your docker init. This should be `--insecure-registry registry.marathon.mesos:31111` This is different for Ubuntu-upstart (14.04), Ubuntu-systemd(15.04), and different on other distros. Google is your friend here. I'll give a quick list below:
  * Ubuntu 14.04 - `/etc/default/docker` - `DOCKER_OPTS`
  * Ubuntu 15.04 - `/etc/systemd/system/multi-user.target.wants/docker.service` - `ExecStart`
  * More Info: [Configuring and Running Docker](https://docs.docker.com/articles/configuring/)
+
 2. Once added, restart the docker daemon. If Mesos is running execute `./thegrid.sh host stop` to bring things down gracefully, or just stop them and recreate them. It's not a big deal.
+
 3. `./thegrid.sh host framework marathon post registry` **Note:** the registry volume will be mounted from `/tmp/registry` from the host.
-4. In Jenkins; if this is your first time doing something -- execute step 2 from **'Want to test Jenkins?'** first. Otherwise click on `New Item` and create a new `Freestyle project`. Call it build-curl-slave; or whatever you want.
+
+4. In Jenkins; if this is your first time doing something -- execute step 2 from **'Want to test Jenkins?'** first. Otherwise click on `New Item` and create a new `Freestyle project`. Call it build-curl-slave, or another name of your choice.
+
 5. Set the `Label Expression` to `mesos-docker`.
-6. Go down to build and add an `Execute Shell` build step. With something similar to the following:
+
+6. Scoll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
+
+7. Go down to build and add an `Execute Shell` build step, with the following:
 ```
 touch Dockerfile
 echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
@@ -113,15 +144,25 @@ echo "RUN apt-get update && apt-get -y install curl && rm -rf /var/lib/apt/lists
 docker build -t registry.marathon.mesos:31111/curl-slave .
 docker push registry.marathon.mesos:31111/curl-slave
 ```
-7. To verify, in the `Build History`, click on the run # (should be 1). Then click on `Console Output`. You should see the output from the executed command.
-8. To doubly verify, from the host execute `docker rmi registry.marathon.mesos:31111/curl-slave` and then do a pull `docker pull registry.marathon.mesos:31111/curl-slave`. It should be downloaded from the registry hosted in mesos.
-9. Back in Jenkins, go back to `Manage Jenkins` -> `Configure System`, and scroll down to the `Cloud` section.
-10. Under `Mesos Cloud`, click on `Advanced...`, then scroll down further and click on `Add Slave Info`.
-11. Set the label string to `mesos-docker-curl`, and click on the `Advanced...` button.
-12. Check `Use Docker Containerizer`, and specify `registry.marathon.mesos:31111/curl-slave` for the `Docker Image`.
-13. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`. If on an Ubuntu host, add another volume with `/usr/bin/docker` for both paths, and mark it as read only.
-14. Click on `Add Parameter` and for the parameter key, specify `dns` and for the value, use `192.168.111.15` (the mesos-dns instance).
-15. Click `save`, and the new slave should be ready for use.
+8. Save the job, and click on `Build Now`. You should see it add an offline slave. The offline slave will then be brought online and the job will run.
+
+9. To verify, in the `Build History`, click on the run # (should be 1). Then click on `Console Output`. You should see the output from the executed command.
+
+10. To doubly verify, from the host execute `docker rmi registry.marathon.mesos:31111/curl-slave` and then do a pull `docker pull registry.marathon.mesos:31111/curl-slave`. It should be downloaded from the registry hosted in mesos.
+
+11. Back in Jenkins, go to `Manage Jenkins` -> `Configure System`, and scroll down to the `Cloud` section.
+
+12. Under `Mesos Cloud`, click on `Advanced...`, then scroll down further and click on `Add Slave Info`.
+
+13. Set the label string to `mesos-docker-curl`, and click on the `Advanced...` button.
+
+14. Check `Use Docker Containerizer`, and specify `registry.marathon.mesos:31111/curl-slave` for the `Docker Image`.
+
+15. Click on `Add Volume` and specify `/var/run/docker.sock` for both the `Container Path` and `Host Path`. If using the vagrant image (or on an Ubuntu host), add another volume with `/usr/bin/docker` for both paths, and mark it as read only.
+
+16. Click on `Add Parameter` and for the parameter key, specify `dns` and for the value, use `192.168.111.15` (the mesos-dns instance).
+
+17. Click `save`, and the new slave should be ready for use.
 
 
 ##### Let's tie it all together now~!
@@ -129,8 +170,10 @@ docker push registry.marathon.mesos:31111/curl-slave
 We're going to build a container and have jenkins trigger marathon to spin it up.
 
 1. Click on `New Item` and create a new `Freestyle project`. Call it `nginx-jm` (for nginx-jenkins-mesos).
-2. For label set it to `mesos-docker-curl` (what we configured in **`Want to do something worthwhile with Jenkins?`**).
-3. Add a new `Execute Shell` Build step and use the following:
+
+2. For label set it to `mesos-docker-curl` (what we configured in **`Want to do something worthwhile with Jenkins?`**), and remember to check the `Mesos Single-use Slave` checkbox.
+
+4. 3. Add a new `Execute Shell` Build step and use the following:
 ```
 git clone https://github.com/mrbobbytables/nginx-jenkins-marathon-test.git
 echo ${BUILD_NUMBER} > nginx-jenkins-marathon-test/skel/build
@@ -147,17 +190,24 @@ http://192.168.111.12:8080/v2/apps/nginx-jm -d @nginx-jenkins-marathon-test/ngin
 ```
 This will pull down the repo, inject the jenkins build number into the build file, and build/push the container. If it successfully builds the container, it will update the marathon app definition in `nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json` and send it to marathon via a `PUT` request.
 
-5. At this point pop on over to Bamboo (`192.168.111.16:8000`) and delete the `/nginx` rule (if it's still there from earlier), and change the rule for `/nginx-jm` to `path_beg -i /`
-6. Pop on over to your public IP, and you should see a small page displaying the container ID and build # from jenkins.
-7. Now that everything is tied together, pop open new tabs for marathon (`192.168.111.12:8080`), and jenkins (`192.168.111.14:8888`). In jenkins, trigger a new build for `nginx-jm`. Then switch over to marathon. You should see the health bar for the `/nginx-jm` app become a mix of green, grey, and blue. Marathon is executing the upgrade strategy specified in the marathon app definition. It will spin up a new node on the new build expanding the total instances of `nginx-jm` to 3, then phase out one of the old instances. It will do this for all of them. Back on the public facing ip, you should see instances with new container IDs and build numbers.
+5. Save and go ahead and press `Build Now`
+
+6. At this point pop on over to Bamboo (`192.168.111.16:8000`) and delete the `/nginx` rule (if it's still there from earlier), and change the rule for `/nginx-jm` to `path_beg -i /`
+
+7. Open a browser with your public IP (vagrant IP `192.168.99.10`), and you should see a small page displaying the container ID and build # from jenkins.
+
+8. Now that everything is tied together, open new browswer tabs for marathon (`192.168.111.12:8080`), and jenkins (`192.168.111.14:8888`).
+
+9. In jenkins, trigger a new build for `nginx-jm`. Then switch over to marathon. You should see the health bar for the `/nginx-jm` app become a mix of green, grey, and blue. Marathon is executing the upgrade strategy specified in the marathon app definition. It will spin up a new node on the new build expanding the total instances of `nginx-jm` to 3, then phase out one of the old instances. It will do this for all of them. On the public facing IP, you should see instances with new container IDs and build numbers.
 
 
 ##### Let's roll it back
 
 1. In marathon (`192.168.111.12:8080`), click `/nginx-jm` and then click on `configuration`.
-2. If you scroll down, you should see a list of date/timestamps. These are the previous versions that marathon has executed.
-3. Click on `Apply these settings`. Marathon will then roll back to that version of the deployment.
-4. Pop on over to the public IP and you should start to see the old build number appear after a few refreshes.
+
+2. Scroll down, you should see a list of date/timestamps. These are the previous versions that marathon has executed. Click on one to expand it and then click `Apply these settings`. Marathon will then roll back to that version of the deployment.
+
+4. Open a browser tab with the public IP and you should start to see the old build number appear after a few refreshes.
 
 
 
@@ -166,13 +216,11 @@ Wound up being a bit more than a tl;dr...
 
 
 ##### How do I return my system to normal?
+
 `./thegrid.sh host stop`
+
 `sudo ./thegrid.sh host clean`
 
-
-
-
----
 
 ---
 ---
@@ -189,7 +237,7 @@ Before even starting the bootstrap process; if you are **NOT** going to use the 
 ##### Bootstrapping
 
 **Note: If using Vagrant**
-Before you bootstrap, please install the `vagrant-salt` plugin. Once installed, you may `vagrant up` and then `vagrant ssh`. For the rest of this tutorial, assume working out of the `/vagrant` directory within the vm.
+Before you bootstrap, please install the `vagrant-salt` plugin. Once installed, you may `vagrant up` and then `vagrant ssh`. For the rest of this tutorial, assume working out of the `/vagrant` directory within the vm, and treat IP `192.168.99.10` as your public IP.
 
 ---
 
@@ -258,15 +306,12 @@ You can add your own within those directories as long as you adhere to the namin
 
 For demo purposes, there is only a single test job available for Chronos.
 
-First post the test job th chronos:
-
+1. Post the test job th chronos:
 `./thegrid.sh host framework chronos post test`
 
-Then connect to the chronos web interface on `192.168.111.13:4400`.
+2. Connect to the chronos web interface on `192.168.111.13:4400`. There should see a single job listed called `test`. 
 
-You should see a single job listed called `test`. Click on it to open the job settings panel on the right hand side.
-
-Click the `Force Run` button (icon 2nd from the left) to execute an on demand task.
+3. Click on it to open the job settings panel on the right hand side. Then click the `Force Run` button (icon 2nd from the left) to execute an on demand task.
 
 Once complete; the `LAST SUCCESS` time should be updated and `SUCCESS` should be listed in job list panel.
 
@@ -283,21 +328,17 @@ lookma, i'm scheduled!
 
 Bamboo's usage in a local deployment fairly minimal -- If no custom HAproxy configs are to be provided, getting up and going is quite quick.
 
-If not already started, execute this command to spawn an instance of Bamboo.
+1. If not already started, execute this command to spawn an instance of Bamboo.
+  `./thegrid.sh host framework marathon post bamboo`
 
-`./thegrid.sh host framework marathon post bamboo`
+2. Once up, connect to the local web server for Bamboo at `http://192.168.111.16:8000`. You should see an entry for each application in marathon. Likely just `/bamboo`, `/mesos-dns`, and `/ovpn`.
 
-Once up, connect to the local web server for Bamboo (`http://192.168.111.16:8000`).
+3. For a quick test with the nginx container; first submit it to marathon with:
+  `./thegrid.sh host framework marathon post nginx`
 
-From there, modify the application rules as needed.
+4. Go back to the Bamboo interface and modify the ACL entry for `/nginx` to be `path_beg -i /`. If you are unfamiliar with HAproxy, this tells it to route any traffic to the nginx container(s) that begins with the prefix `/`. So **ALL** traffic will route to nginx when coming in on the default port 80.
 
-For a quick test with the nginx container; first submit it to marathon with:
-
-`./thegrid.sh host framework marathon post nginx`
-
-Then in the Bamboo interface, modify the ACL entry for nginx to be `path_beg -i /`. If you are unfamiliar with HAproxy, this tells it to route any traffic to the nginx container(s) that begins with the prefix `/`. So **ALL** traffic will route to nginx when coming in on the default port 80.
-
-You can verify simply by going to your `http://<public_ip>/`
+5. Open a new broswer tab and point it towards `http://<public_ip>/`. You should see a 'Welcome to nginx!' message.
 
 
 For any advanced configuration. The HAproxy template should be modified before the Bamboo container is built, or have it supplied at runtime through a volume mount or seeded via some method with `ENVIRONMENT_INIT`.
@@ -307,9 +348,9 @@ For any advanced configuration. The HAproxy template should be modified before t
 
 ##### Using Jenkins
 
-After services have started, connect to `http://192.168.111.14:8888`. Before any jobs can be scheduled, a small configuration change is required. Go to `Manage Jenkins` -> `Configure System` and change a benign setting such as `Quiet Period` or disable the `SSHD` port; and save your changes. After doing so, the Jenkins config will update and items can be scheduled in Mesos without issue. Please note; this behavior is **ONLY** present in new unconfigured servers and would never crop up in a production setting.
+After services have started, connect to `http://192.168.111.14:8888`. This is the Jenkins web front end.
 
-With Jenkins configured, jobs may now be added.
+Before any jobs can be scheduled, a small configuration change is required. Go to `Manage Jenkins` -> `Configure System` and change a benign setting such as `Quiet Period` or disable the `SSHD` port; and save your changes. After doing so, the Jenkins config will update and items can be scheduled in Mesos without issue. Please note; this behavior is **ONLY** present in new unconfigured servers and would never crop up in a production setting. With Jenkins configured, jobs may now be added.
 
 By default, there are two available build container labels. `mesos` is a vanilla instance of the [mrbobbytables/jenkins-build-base](https://github.com/mrbobbytables/jenkins-build-base) container and is suitable for quick testing like echoing output. The other `mesos-docker` is the same container, but with `/usr/bin/docker` and `/var/run/docker.sock` mounted. This container is suitable for building other containers.
 
@@ -327,7 +368,7 @@ To verify the job - click on the run number (should be #1) in the `Build History
 
 **Building containers**
 
-To test building and pushing containers, there is a prerequisite that requires changing the docker daemon settings of the host to allow the insecure registry.
+To test building and pushing containers, there is a prerequisite that requires changing the docker daemon settings of the host to allow the insecure registry. If using the vagrant image, this has already been done and you can proceed to step 1.
 
 Modifying the docker daemon settings is rather host specific [Docker's docs cover it quite well](https://docs.docker.com/articles/configuring/), but for a quick (Ubuntu) reference -- please see the below list:
 
@@ -337,12 +378,11 @@ Modifying the docker daemon settings is rather host specific [Docker's docs cove
 All that must be added is `--insecure-registry registry.marathon.mesos:31111` and restart the docker daemon.
 
 1. With that done, bring up the cluster (`docker-compose up -d` or `./thegrid.sh host up`) and push the registry to marathon with
-
-`./thegrid.sh host framework marathon post registry`
+  `./thegrid.sh host framework marathon post registry`
 
 2. After the registry is up. Add a new build job to Jenkins, and remember -- if this is the first time this instance of Jenkins has been run, a config **MUST** be changed under `Configure System`.
 
-4. Create a new build job, and set it up similarly to the previous job (`Freestyle projeft`) but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to the following:
+3. Create a new build job, and set it up similarly to the previous job (`Freestyle projeft`) but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to the following:
 ```
 touch Dockerfile
 echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
@@ -351,9 +391,9 @@ docker build -t registry.marathon.mesos:31111/curl-slave .
 docker push registry.marathon.mesos:31111/curl-slave
 ```
 
-5. Save the job, and click `Build Now`.
+4. Save the job, and click `Build Now`.
 
-6. Once the build is completed, you can verify it's success on the host by wiping the curl slave image and pulling it from the registry:
+5. Once the build is completed, you can verify it's success on the host by wiping the curl slave image and pulling it from the registry:
 ```
 docker rmi registry.marathon.mesos:31111/curl-slave
 docker pull registry.marathon.mesos:31111/curl-slave
@@ -401,9 +441,9 @@ This will pull down the repo, inject the jenkins build number into the build fil
 
 12. Save the job and click `Build Now`.
 
-13. At this stage, if you wish you can watch it complete and push the build or proceed onto the next step.
+13. At this stage, if you wish, you can watch it complete and push the build or proceed onto the next step.
 
-14. Open the Bamboo config page (`192.168.111.16:8000`) and delete the `/nginx` rule. If you're still running the `/nginx` marathon app, I'd delete it as it is no longer required at this point. Once the rule is deleted and `/nginx-jm` has started to deploy, modify `/nginx-jm`'s rule to be `path_beg -i /`.
+14. Open the Bamboo config page (`192.168.111.16:8000`) and delete the `/nginx` ACL rule. If you're still running the `/nginx` marathon app, it may now be deleted as it is no longer required at this point. Once the rule is deleted and `/nginx-jm` has started to deploy, modify `/nginx-jm`'s rule to be `path_beg -i /`.
 
 15. Open a page and point it to your public IP. You should see a small page displaying the container ID and build # from jenkins, and if you refresh it a few times -- you should see multiple container ID's. HAproxy is round-robin load balancing between them.
 
@@ -427,7 +467,7 @@ In an instance where something was pushes live that shouldn't have been and you 
 ---
 
 **Note:**
-When done testing, be sure to remove the insecure registry entry from your docker daemon settings.
+If not using hte vagrant image - When done testing, be sure to remove the insecure registry entry from your docker daemon settings.
 
 ---
 ---

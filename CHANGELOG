@@ -1,0 +1,4 @@
+2015-10-07 - 1.1.0:
+  - vagrant image added
+  - host detection for compose customization
+  - multiple small bug fixes 
