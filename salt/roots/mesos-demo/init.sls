@@ -10,11 +10,10 @@ mesos-demo-prereq:
     - pkg: docker-engine
 
 mesos-dns:
-  file.replace:
+  file.managed:
     - name: /etc/resolvconf/resolv.conf.d/head
-    - append_if_not_found: true
-    - pattern: ^nameserver 127.0.1.1$
-    - repl: nameserver 127.0.1.1
+    - source: salt://mesos-demo/files/etc/resolvconf/resolv.conf.d/head
+    - template: jinja
   cmd.run:
     - name: resolvconf -u
 

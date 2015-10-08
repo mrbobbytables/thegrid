@@ -1,3 +1,6 @@
+2015-10-08 - 1.1.1:
+  - fix bug with mesos-dns in some deployments
+
 2015-10-07 - 1.1.0:
   - vagrant image added
   - host detection for compose customization
