@@ -11,7 +11,7 @@ A helpful little bash script and collection of app/tasks definitions for Maratho
 * [Notes and Tips](#notes-and-tips)
  * [caveats](#caveats)
 * [Quick Reference](#quick-reference)
-* [Command Referece](#command-reference)
+* [Command Reference](#command-reference)
  * [general](#general)
  * [host](#host-specific)
  * [host-networking](#host-networking)
@@ -107,7 +107,7 @@ Want to get up and going as fast as possible? Do the following:
 
 4. Set `Label Expression` to `mesos`.
 
-5. Scoll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
+5. Scroll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
 
 6. Go down to build and add an `Execute Shell` build step; and give it some command to execute. An example could be something like `echo "look ma, I scheduled!"`. Then save the job.
 
@@ -117,7 +117,7 @@ Want to get up and going as fast as possible? Do the following:
 
 ##### Want to do something worthwhile with Jenkins?
 
-Lets build a container that can be used to push things to marathon.
+Let's build a container that can be used to push things to marathon.
 
 **Note** If using the vagrant image, skip to step 3.
 
@@ -134,7 +134,7 @@ Lets build a container that can be used to push things to marathon.
 
 5. Set the `Label Expression` to `mesos-docker`.
 
-6. Scoll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
+6. Scroll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
 
 7. Go down to build and add an `Execute Shell` build step, with the following:
 ```
@@ -338,7 +338,7 @@ Bamboo's usage in a local deployment fairly minimal -- If no custom HAproxy conf
 
 4. Go back to the Bamboo interface and modify the ACL entry for `/nginx` to be `path_beg -i /`. If you are unfamiliar with HAproxy, this tells it to route any traffic to the nginx container(s) that begins with the prefix `/`. So **ALL** traffic will route to nginx when coming in on the default port 80.
 
-5. Open a new broswer tab and point it towards `http://<public_ip>/`. You should see a 'Welcome to nginx!' message.
+5. Open a new browser tab and point it towards `http://<public_ip>/`. You should see a 'Welcome to nginx!' message.
 
 
 For any advanced configuration. The HAproxy template should be modified before the Bamboo container is built, or have it supplied at runtime through a volume mount or seeded via some method with `ENVIRONMENT_INIT`.
@@ -382,7 +382,7 @@ All that must be added is `--insecure-registry registry.marathon.mesos:31111` an
 
 2. After the registry is up. Add a new build job to Jenkins, and remember -- if this is the first time this instance of Jenkins has been run, a config **MUST** be changed under `Configure System`.
 
-3. Create a new build job, and set it up similarly to the previous job (`Freestyle projeft`) but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to the following:
+3. Create a new build job, and set it up similarly to the previous job (`Freestyle project`) but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to the following:
 ```
 touch Dockerfile
 echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
@@ -706,5 +706,3 @@ Chronos job files must be [name].chronos.local.json e.g.
 test_job.chronos.local.json
 
 ```
-
-
