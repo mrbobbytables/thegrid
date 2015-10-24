@@ -1,20 +1,26 @@
 zookeeper:
   container_name: zookeeper
-  net: "host"
   image: mrbobbytables/zookeeper
+  ports:
+   - "192.168.111.10:2181:2181"
+   - "192.168.111.10:2888:2888"
+   - "192.168.111.10:3888:3888"
   environment:
     - ZOOKEEPER_LOG_STDOUT_THRESHOLD=WARN
 
 
 mesosmaster:
   container_name: mesosmaster
-  net: "host"
+  ports:
+    - "192.168.111.11:5050:5050"
+    - "192.168.111.11:9000:9000"
   image: mrbobbytables/mesos-master
   environment:
-    - LIBPROCESS_IP=192.168.111.11
+    - LIBPROCESS_ADVERTISE_IP=192.168.111.11
+    - LIBPROCESS_ADVERTISE_PORT=9000
     - LIBPROCESS_PORT=9000
-    - MESOS_IP=192.168.111.11
-    - MESOS_HOSTNAME=192.168.111.11
+    - MESOS_ADVERTISE_IP=192.168.111.11
+    - MESOS_ADVERTISE_PORT=5050
     - MESOS_ZK=zk://192.168.111.10:2181/mesos
     - MESOS_QUORUM=1
     - MESOS_REGISTRY=in_memory
@@ -40,7 +46,7 @@ mesosslave:
     - MESOS_DOCKER_STOP_TIMEOUT=1500ms
     - MESOS_WORKDIR=/var/lib/mesos
     - MESOS_LOG_DIR=/var/log/mesos
-    - MESOS_DOCKER_SANDBOX_DIRECTORY=/mnt/mesos/sandbox
+    - MESOS_SANDBOX_DIRECTORY=/mnt/mesos/sandbox
     - MESOS_LOGGING_LEVEL=WARNING
   volumes:
     - /sys:/sys:ro
@@ -51,13 +57,16 @@ mesosslave:
 
 marathon:
   container_name: marathon
-  net: "host"
   image: mrbobbytables/marathon
+  ports:
+    - "192.168.111.12:8080:8080"
+    - "192.168.111.12:9200:9200"
   environment:
-    - LIBPROCESS_IP=192.168.111.12
+    - LIBPROCESS_ADVERTISE_IP=192.168.111.12
+    - LIBPROCESS_ADVERTISE_PORT=9200
     - LIBPROCESS_PORT=9200
     - MARATHON_HOSTNAME=192.168.111.12
-    - MARATHON_HTTP_ADDRESS=192.168.111.12
+    - MARATHON_WEBUI_URL=192.168.111.12
     - MARATHON_MASTER=zk://192.168.111.10:2181/mesos
     - MARATHON_ZK=zk://192.168.111.10:2181/marathon
     - MARATHON_EVENT_SUBSCRIBER=http_callback
@@ -66,28 +75,32 @@ marathon:
 
 chronos:
   container_name: chronos
-  net: "host"
+  ports:
+    - "192.168.111.13:4400:4400"
+    - "192.168.111.13:9300:9300"
   image: mrbobbytables/chronos
   environment:
-    - LIBPROCESS_IP=192.168.111.13
+    - LIBPROCESS_ADVERTISE_IP=192.168.111.13
+    - LIBPROCESS_ADVERTISE_PORT=9300
     - LIBPROCESS_PORT=9300
     - CHRONOS_MASTER=zk://192.168.111.10:2181/mesos
     - CHRONOS_ZK_HOSTS=zk://192.168.111.10:2181
     - CHRONOS_HOSTNAME=192.168.111.13
-    - CHRONOS_HTTP_ADDRESS=192.168.111.13
     - CHRONOS_MESOS_FRAMEWORK_NAME=chronos
     - CHRONOS_HTTP_PORT=4400
     - CHRONOS_LOG_STDOUT_THRESHOLD=WARN
 
-
 jenkins:
   container_name: jenkins
-  net: "host"
+  ports:
+    - "192.168.111.14:8888:8888"
+    - "192.168.111.14:8090:8090"
+    - "192.168.111.14:9400:9400"
   image: mrbobbytables/jenkins
   environment:
-    - LIBPROCESS_IP=192.168.111.14
+    - LIBPROCESS_ADVERTISE_IP=192.168.111.14
+    - LIBPROCESS_ADVERTISE_PORT=9400
     - LIBPROCESS_PORT=9400
-    - JENKINS_HTTP_LISTEN_ADDRESS=192.168.111.14
     - JENKINS_HTTP_PORT=8888
     - JENKINS_MESOS_AUTOCONF=enabled
     - JENKINS_MESOS_MASTER=192.168.111.11:5050

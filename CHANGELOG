@@ -1,7 +1,10 @@
+2015-10-23 - 1.1.2:
+ - host.yml modified for mesos0.24
+
 2015-10-08 - 1.1.1:
-  - fix bug with mesos-dns in some deployments
+ - fix bug with mesos-dns in some deployments
 
 2015-10-07 - 1.1.0:
-  - vagrant image added
-  - host detection for compose customization
-  - multiple small bug fixes 
+ - vagrant image added
+ - host detection for compose customization
+ - multiple small bug fixes 
