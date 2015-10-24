@@ -69,6 +69,30 @@ check_compose() {
   fi
 }
 
+detect_host_os() {
+  if [[ -f /etc/os-release ]]; then
+    if ! cat /etc/os-release | grep -Po '(?<=^ID=|ID_LIKE=).*' | grep -q debian; then
+      echo "Host OS detected as a non-debian based distribution."
+      echo "Removing /usr/bin/docker volume mount from docker-compose.yml"
+      echo "Please ensure your docker install is remote api compatible with the version installed"
+      echo "in the mesos-slave and jenkins-build-base containers."
+      sed -i -e "/\/usr\/bin\/docker:\/usr\/bin\/docker:ro/d"  \
+             -e "/JENKINS_MESOS_SLAVE_2_VOL_2/d"               \
+                docker-compose.yml
+    fi
+  else
+    echo "!#!#!# WARNING !#!#!#"
+    echo "Cannot determine host OS."
+    echo "If you are on a debian based platform; you should be able to proceed."
+    echo "If you are on a redhat or other platform; remove the following from docker-compose.yml:"
+    echo "- /usr/bin/docker:/usr/bin/docker:ro"
+    echo "- JENKINS_MESOS_SLAVE_2_VOL_2=/usr/bin/docker::/usr/bin/docker::ro"
+    echo "Then ensure docker client/server api versions are compatible by checking the versions installed in the"
+    echo "mesos-slave and jenkins-build-base containers."
+    read -t 30 -p "Press Enter or wait 30 seconds to continue."
+  fi
+}
+
 get_host_ip() {
   if [[ ! $HOST_IP ]]; then  
     local netdev=""
@@ -81,7 +105,7 @@ get_host_ip() {
     bind_ip="${bind_ip:-"$local_ip"}"
     export HOST_IP="$bind_ip"
   else
-    "$HOST_IP already defined. Using $HOST_IP"
+    echo "$HOST_IP already defined. Using $HOST_IP"
   fi
 }
 
@@ -112,15 +136,18 @@ put_marathon() {
   if [[ "$(docker inspect -f '{{.State.Running}}' marathon)" == "true" ]]; then
     local marathon_ip=""
     local marathon_app=""
+    local marathon_app_name=""
     if [[ $# -eq 1 ]]; then
       marathon_ip="$(docker inspect --format='{{.NetworkSettings.IPAddress}}' marathon)"
       marathon_app="local/marathon_apps/$1.container.marathon.local.json"
+      marathon_app_name="$1"
     else
       marathon_ip="$1"
       marathon_app="local/marathon_apps/$2.host.marathon.local.json"
+      marathon_app_name="$2"
     fi
     if [[ -f "$marathon_app" ]]; then
-      curl -X PUT -H "Content-Type: application/json" "$marathon_ip:8080/v2/apps" -d "@$marathon_app"
+      curl -X PUT -H "Content-Type: application/json" "$marathon_ip:8080/v2/apps/$marathon_app_name" -d "@$marathon_app"
     else
      echo "$marathon_app not found."
      exit 1
@@ -209,9 +236,11 @@ start_cluster() {
         host_mod_configs
       fi
     fi
+    detect_host_os
     exec /usr/local/bin/docker-compose up  -d --force-recreate
   ;;
   n|no|*)
+    detect_host_os
     echo "Start cluster with: docker-compose up -d --force-recreate"
   ;;
   esac 

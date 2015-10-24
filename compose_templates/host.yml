@@ -50,9 +50,10 @@ mesosslave:
     - MESOS_LOGGING_LEVEL=WARNING
   volumes:
     - /sys:/sys:ro
-    - /var/run/docker.sock:/var/run/docker.sock:rw
     - /var/lib/mesos:/var/lib/mesos:rw
     - /mnt/mesos/sandbox:/mnt/mesos/sandbox:rw
+    - /var/run/docker.sock:/var/run/docker.sock:rw
+    - /usr/bin/docker:/usr/bin/docker:ro
 
 marathon:
   container_name: marathon
@@ -110,4 +111,5 @@ jenkins:
     - JENKINS_MESOS_SLAVE_2_LABEL=mesos-docker
     - JENKINS_MESOS_SLAVE_2_DOCK_IMG=mrbobbytables/jenkins-build-base
     - JENKINS_MESOS_SLAVE_2_VOL_1=/var/run/docker.sock::/var/run/docker.sock::rw
+    - JENKINS_MESOS_SLAVE_2_VOL_2=/usr/bin/docker::/usr/bin/docker::ro
     - JENKINS_MESOS_SLAVE_2_PARAM_1=dns::192.168.111.15
