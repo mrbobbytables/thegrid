@@ -22,7 +22,7 @@
         "MARATHON_ENDPOINT": "http://192.168.111.12:8080",
         "HAPROXY_TEMPLATE_PATH": "/opt/bamboo/config/haproxy.tmplt",
         "HAPROXY_OUTPUT_PATH": "/etc/haproxy/haproxy.cfg",
-        "HAPROXY_RELOAD_CMD": "iptables -I INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; sleep 0.2; supervisorctl restart haproxy; iptables -D INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; done",
+        "HAPROXY_RELOAD_CMD": "iptables -D INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; iptables -I INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; sleep 0.2; supervisorctl restart haproxy; iptables -D INPUT -p tcp -m multiport --dports 80,443 --syn -j DROP; done",
         "STATSD_ENABLED": "false"
     }
 }
