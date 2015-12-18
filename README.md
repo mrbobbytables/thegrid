@@ -29,7 +29,7 @@ Want to get up and going as fast as possible? Do the following:
 
 ##### Before you begin
 
- * For this demo, a vagrant image is provided and the instructions will assume it is to be used. If you wish to execute everything without vagrant; please consider the following:
+ * For this demo, a vagrant image is provided and the instructions will assume it is to be used. **NOTE:** If you used an earlier iteration of this script, the vagralt salt plugin should be removed first (`vagrant plugin uninstall vagrant-salt`) If you wish to execute everything without vagrant; please consider the following:
 
  * VM spec wise, more than 2 cores is ideal along with 2gbs of ram. It can function with 2 core, but resource scheduling may wind up queueing some tasks towards the end of the demo.
 
@@ -47,25 +47,23 @@ Want to get up and going as fast as possible? Do the following:
 
 1. Clone this repo
 
-2. Install the vagrant salt plugin with - `vagrant plugin install vagrant-salt`
+2. Bring up the vagrant image - `vagrant up`
 
-3. Bring up the vagrant image - `vagrant up`
+3. Once up and running, `vagrant ssh` and switch to the `/vagrant` directory.
 
-4. Once up and running, `vagrant ssh` and switch to the `/vagrant` directory.
-
-5. `sudo ./thegrid.sh host bootstrap pull`
+4. `sudo ./thegrid.sh host bootstrap pull`
   * pulls images
   * creates mesos0 bridge and container IPs
   * creates openvpn config. **Note:** Follow the directions, and generate a server cert and a client cert. The prompts do change for client cert gen and you can't just enter through it all. Client config for importing will be at `local/client-<public_ip>.ovpn`. If you make a mistake, you can regen it after the fact with `sudo ./thegrid.sh host ovpn`
   * creates a customized docker-compose.yml file.
   * starts cluster (if not started, start with `./thegrid.sh host up` or `docker-compose up -d`)
 
-6. Once Marathon is up and running execute the following:
+5. Once Marathon is up and running execute the following:
   * `./thegrid.sh host framework marathon post mesos-dns`
   * `./thegrid.sh host framework marathon post ovpn` (if config was made)
   * `./thegrid.sh host framework marathon post bamboo`
 
-7. If you did create an OpenVPN container, now would be the time to connect. The below should be available:
+6. If you did create an OpenVPN container, now would be the time to connect. The below should be available:
   * Mesos-master: `192.168.111.11:5050`
   * Marathon: `192.168.111.12:8080`
   * Chronos: `192.168.111.13:4400`
@@ -137,7 +135,7 @@ Let's build a container that can be used to push things to marathon.
 6. Scroll down and check the checkbox next to `Mesos Single-use Slave` under the Build Environment settings.
 
 7. Go down to build and add an `Execute Shell` build step, with the following:
-```
+```bash
 touch Dockerfile
 echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
 echo "RUN apt-get update && apt-get -y install curl && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*" >> Dockerfile
@@ -173,8 +171,8 @@ We're going to build a container and have jenkins trigger marathon to spin it up
 
 2. For label set it to `mesos-docker-curl` (what we configured in **`Want to do something worthwhile with Jenkins?`**), and remember to check the `Mesos Single-use Slave` checkbox.
 
-4. 3. Add a new `Execute Shell` Build step and use the following:
-```
+3. Add a new `Execute Shell` Build step and use the following:
+```bash
 git clone https://github.com/mrbobbytables/nginx-jenkins-marathon-test.git
 echo ${BUILD_NUMBER} > nginx-jenkins-marathon-test/skel/build
 docker build -t registry.marathon.mesos:31111/nginx-jm nginx-jenkins-marathon-test/
@@ -182,7 +180,7 @@ docker tag registry.marathon.mesos:31111/nginx-jm registry.marathon.mesos:31111/
 docker push registry.marathon.mesos:31111/nginx-jm
 ```
 4. Then add a 2nd `Execute Shell` build step with this:
-```
+```bash
 sed -i -e "s|registry.marathon.mesos:31111/nginx-jm:latest|registry.marathon.mesos:31111/nginx-jm:$BUILD_NUMBER|g" \
     nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
 curl -X PUT -H "Accept: application/json" -H "Content-Type: application/json" \
@@ -383,7 +381,7 @@ All that must be added is `--insecure-registry registry.marathon.mesos:31111` an
 2. After the registry is up. Add a new build job to Jenkins, and remember -- if this is the first time this instance of Jenkins has been run, a config **MUST** be changed under `Configure System`.
 
 3. Create a new build job, and set it up similarly to the previous job (`Freestyle project`) but for the label use `mesos-docker`, and set the `Execute Shell` Build Step to the following:
-```
+```bash
 touch Dockerfile
 echo "FROM mrbobbytables/jenkins-build-base" >> Dockerfile
 echo "RUN apt-get update && apt-get -y install curl && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*" >> Dockerfile
@@ -422,7 +420,7 @@ This takes advantage of the new build slave built in the previous exercise. Befo
 9. For label set it to `mesos-docker-curl` (what was defined in step 3).
 
 10. Add a new `Execute Shell` Build step and use the following:
-```
+```bash
 git clone https://github.com/mrbobbytables/nginx-jenkins-marathon-test.git
 echo ${BUILD_NUMBER} > nginx-jenkins-marathon-test/skel/build
 docker build -t registry.marathon.mesos:31111/nginx-jm nginx-jenkins-marathon-test/
@@ -431,7 +429,7 @@ docker push registry.marathon.mesos:31111/nginx-jm
 ```
 
 11. Then add a 2nd `Execute Shell` build step with this:
-```
+```bash
 sed -i -e "s|registry.marathon.mesos:31111/nginx-jm:latest|registry.marathon.mesos:31111/nginx-jm:$BUILD_NUMBER|g" \
     nginx-jenkins-marathon-test/nginx-jm.host.marathon.local.json
 curl -X PUT -H "Accept: application/json" -H "Content-Type: application/json" \

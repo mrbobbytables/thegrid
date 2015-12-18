@@ -25,7 +25,9 @@
         "MESOSDNS_TTL": "60",
         "MESOSDNS_TIMEOUT": "5",
         "MESOSDNS_PORT": "53",
-        "MESOSDNS_HTTPORT": "8123"
+        "MESOSDNS_HTTPORT": "8123",
+        "MESOSDNS_IPSOURCES_000": "host",
+        "MESOSDNS_IPSOURCES_001": "netinfo"
     }
 }
 
