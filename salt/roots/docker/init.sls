@@ -3,6 +3,7 @@ docker-engine-prereq:
     - pkgs:
       - apt-transport-https
       - bridge-utils
+      - linux-image-extra-{{grains.kernelrelease}}
 
 docker-engine-install:
   pkgrepo.managed:
