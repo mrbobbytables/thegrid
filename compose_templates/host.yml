@@ -32,6 +32,7 @@ mesosmaster:
 mesosslave:
   container_name: mesosslave
   net: "host"
+  pid: "host"
   image: mrbobbytables/mesos-slave-jenkins
   cap_add:
     - SYS_ADMIN
