@@ -1,3 +1,6 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
 Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.vm.hostname = "mesos"
@@ -16,9 +19,6 @@ Vagrant.configure(2) do |config|
 		salt.install_type = "stable"
 		salt.masterless = true
     salt.run_highstate = true
-		# see here for the bootstrap reasoning:
-		# https://github.com/mitchellh/vagrant/issues/5973#issuecomment-137276605
-		salt.bootstrap_options = '-F -c /tmp/ -P'
     salt.grains_config = "salt/minion.d/vagrant.conf"
   end
 
