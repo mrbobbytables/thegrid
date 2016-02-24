@@ -1,13 +1,6 @@
-mesos-demo-prereq:
-  service.running:
-    - name: docker
-    - watch: 
-      - file: /etc/default/docker
-  file.managed:
-    - name: /etc/default/docker
-    - source: salt://mesos-demo/files/etc/default/docker
-  require:
-    - pkg: docker-engine
+mesos-prereqs:
+  pkg.installed:
+    - name: bridge-utils
 
 mesos-dns:
   file.managed:

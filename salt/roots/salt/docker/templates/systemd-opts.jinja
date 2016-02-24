@@ -1,0 +1,13 @@
+{% from "docker/map.jinja" import docker with context %}
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/docker daemon -H fd:// 
+{%- for key, value in docker.get("opts").iteritems() -%}
+{% for opt in value %} --{{ key }}={{ opt }}{% endfor %}
+{%- endfor -%}
+
+{% for key, value in docker.get("env_vars").iteritems() %}
+Environment={{key}}={{value}}
+{%- endfor -%}
+

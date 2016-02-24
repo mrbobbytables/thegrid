@@ -1,0 +1,30 @@
+# -*- coding: utf-8 -*-
+# vim: ft=jinja
+
+{% import_yaml 'docker/defaults.yml' as defaults %}
+{% import_yaml 'docker/osmap.yml' as osmap %}
+
+
+{# suse does not have an 'osfinger' grain. The below jinja well generate one for use #}
+{% if grains.os_family == 'Suse' %}
+{% set suse_osfinger = [grains.os, grains.osrelease_info[0]]|join("-") %}
+{{ salt['grains.set'](key='osfinger', val=suse_osfinger) }}
+{% endif %}
+
+{# get defaults based on the osfinger grain and apply them #}
+{% set os_default = salt['grains.filter_by'](osmap, grain='osfinger') %}
+{% do defaults.docker.update(os_default) %}
+
+{# if any pillar data is present, merge it with the osdefaults prefering the pillar data #}
+{% set engine_opts = salt['pillar.get']('docker:lookup:engine', default=defaults.docker, merge=true) %}
+{% do defaults.docker.update(engine_opts) %}
+
+
+{% set compose_opts = salt['pillar.get']('docker:lookup:compose', default=defaults.compose, merge=true) %}
+{% do defaults.compose.update(compose_opts) %}
+
+
+{% set docker = defaults.docker %}
+{% set compose = defaults.compose %}
+
+

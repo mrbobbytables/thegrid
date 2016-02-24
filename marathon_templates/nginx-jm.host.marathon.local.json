@@ -19,7 +19,12 @@
     },
     "healthChecks": [
         {
-            "protocol": "HTTP"
+            "protocol": "HTTP",
+            "portIndex": 0,
+            "gracePeriodSeconds": 5,
+            "intervalSeconds": 30,
+            "timeoutSeconds": 20,
+            "maxConsecutiveFailures": 3
         }
     ],
     "backoffSeconds": 2,

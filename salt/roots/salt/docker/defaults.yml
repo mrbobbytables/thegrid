@@ -1,0 +1,7 @@
+compose:
+  version:
+  completion: true
+
+docker:
+  opts: {}
+  env_vars: {}

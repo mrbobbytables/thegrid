@@ -5,7 +5,7 @@ Vagrant.configure(2) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.vm.hostname = "mesos"
   config.vm.network "private_network", ip: "192.168.99.10"
-  config.vm.synced_folder "salt/roots", "/srv/salt/"
+  config.vm.synced_folder "salt/roots", "/srv/"
   config.vm.synced_folder "salt/minion.d/", "/etc/salt/minion.d/"
 
 
@@ -19,7 +19,6 @@ Vagrant.configure(2) do |config|
 		salt.install_type = "stable"
 		salt.masterless = true
     salt.run_highstate = true
-    salt.grains_config = "salt/minion.d/vagrant.conf"
   end
 
 end

@@ -1,0 +1,95 @@
+CentOS Linux-7:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    baseurl: https://yum.dockerproject.org/repo/main/centos/7
+    gpgkey: https://yum.dockerproject.org/gpg
+
+Debian-7:
+  opts_type: default
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    name: deb https://apt.dockerproject.org/repo debian-wheezy main
+    keyid: 2C52609D
+    keyserver: keyserver.ubuntu.com
+
+Debian-8:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    name: deb https://apt.dockerproject.org/repo debian-jessie main
+    keyid: 2C52609D
+    keyserver: keyserver.ubuntu.com
+
+Fedora-21:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    baseurl: https://yum.dockerproject.org/repo/main/fedora/21
+    gpgkey: https://yum.dockerproject.org/gpg
+
+Fedora-22:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    baseurl: https://yum.dockerproject.org/repo/main/fedora/22
+    gpgkey: https://yum.dockerproject.org/gpg
+
+Fedora-23:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    baseurl: https://yum.dockerproject.org/repo/main/fedora/23
+    gpgkey: https://yum.dockerproject.org/gpg
+
+openSUSE-13:
+  opts_type: systemd
+  pkg:
+    name: docker
+
+Oracle Linux Server-7:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    baseurl: https://yum.dockerproject.org/repo/main/oraclelinux/7
+    gpgkey: https://yum.dockerproject.org/gpg
+
+Ubuntu-12.04:
+  opts_type: default
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    name: deb https://apt.dockerproject.org/repo ubuntu-precise main
+    keyid: 2C52609D
+    keyserver: keyserver.ubuntu.com
+
+Ubuntu-14.04:
+  opts_type: default
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    name: deb https://apt.dockerproject.org/repo ubuntu-trusty main
+    keyid: 2C52609D
+    keyserver: keyserver.ubuntu.com
+  opts:
+    storage-driver:
+      - aufs
+
+Ubuntu-15.04:
+  opts_type: systemd
+  pkg:
+    name: docker-engine
+  pkgrepo:
+    name: deb https://apt.dockerproject.org/repo ubuntu-vivid main
+    keyid: 2C52609D
+    keyserver: keyserver.ubuntu.com
+  opts:
+    storage-driver:
+      - aufs
